@@ -486,7 +486,11 @@ document.addEventListener("touchend",e=>{
 const S=360, FONT='700 250px Andika,"Trebuchet MS",system-ui,sans-serif';
 const guide=$("guide"), ink=$("ink");
 const gctx=guide.getContext("2d"), ictx=ink.getContext("2d");
-let drawing=false, strokes=0;
+const PEN=17;
+/* travel = אורך המסלול שהאצבע עברה. משמש לזיהוי קישקוש: מעבר נקי
+   על האות מכסה שטח שמתאים לאורך המסלול כפול עובי העט, וקישקוש
+   שחוזר על עצמו עובר מסלול ארוך בהרבה מהשטח שנצבע. */
+let drawing=false, strokes=0, travel=0, lastP=null;
 
 function fitCanvas(c,ctx){
   const r=c.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,3);
@@ -512,7 +516,7 @@ function drawGuide(){
   drawLetterOn(gctx,S,"#D9DEE8");
 }
 function clearInk(){
-  ictx.clearRect(0,0,S,S); strokes=0;
+  ictx.clearRect(0,0,S,S); strokes=0; travel=0; lastP=null;
   $("bar").style.width="0%"; $("bar").style.background="var(--leaf)";
   $("result").textContent='עוברים עם האצבע על האות האפורה, ואז לוחצים "בדקו אותי".';
 }
@@ -522,11 +526,16 @@ function pos(e){
 }
 ink.addEventListener("pointerdown",e=>{
   e.preventDefault(); drawing=true; strokes++; ink.setPointerCapture(e.pointerId);
-  const p=pos(e);
-  ictx.strokeStyle="#152647"; ictx.lineWidth=17; ictx.lineCap="round"; ictx.lineJoin="round";
+  const p=pos(e); lastP=p;
+  ictx.strokeStyle="#152647"; ictx.lineWidth=PEN; ictx.lineCap="round"; ictx.lineJoin="round";
   ictx.beginPath(); ictx.moveTo(p.x,p.y); ictx.lineTo(p.x+.1,p.y); ictx.stroke();
 });
-ink.addEventListener("pointermove",e=>{ if(!drawing) return; e.preventDefault(); const p=pos(e); ictx.lineTo(p.x,p.y); ictx.stroke(); });
+ink.addEventListener("pointermove",e=>{
+  if(!drawing) return; e.preventDefault(); const p=pos(e);
+  if(lastP) travel+=Math.hypot(p.x-lastP.x,p.y-lastP.y);
+  lastP=p;
+  ictx.lineTo(p.x,p.y); ictx.stroke();
+});
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>ink.addEventListener(ev,()=>drawing=false));
 
 function openPad(l,c){
@@ -584,30 +593,76 @@ function dilate(m,r){
 const cnt=m=>{let c=0;for(let i=0;i<m.length;i++)c+=m[i];return c;};
 const inter=(a,b)=>{let c=0;for(let i=0;i<a.length;i++) if(a[i]&&b[i])c++; return c;};
 
-$("check").onclick=()=>{
+/* ספי הבדיקה. R_COV קטן מ-R_PREC כי כדי "לכסות" את האות צריך לעבור
+   ממש עליה, ואילו לחריגה קטנה מהקו מותר להיות סלחנית יותר. */
+const R_COV=5, R_PREC=4;
+/* MAX_INK נקבע ממדידה: מעבר תקין על כל 26 האותיות בשתי הצורות הגיע
+   ל-0.64 לכל היותר, ומעבר "מושלם" שממלא את האות בדיוק מגיע ל-0.99.
+   מילוי השטח של אות צפופה כמו e מגיע ל-1.43, ולכן הסף באמצע. */
+const MIN_COVER=.80, MIN_CELLS=.85, MIN_PREC=.85, MAX_INK=1.15, MAX_OVERDRAW=3.2;
+
+/* חפיפת פיקסלים לבדה ניתנת לרמייה: שני קווים אלכסוניים שמנופחים
+   ברדיוס נדיב "נוגעים" בחלק גדול מאות צפופה. לכן בודקים גם לפי תאים –
+   מחלקים את האות לריבועים וסופרים בכמה מהם המשתמש באמת עבר. כך
+   חייבים לבקר בכל חלק של האות ולא רק לחתוך אותה. */
+const CELL=10;
+function cellCoverage(user,tgt){
+  const uD=dilate(user,2), g=Math.ceil(N/CELL);
+  let need=0, got=0;
+  for(let cy=0;cy<g;cy++) for(let cx=0;cx<g;cx++){
+    let t=0,u=0;
+    const yEnd=Math.min(N,(cy+1)*CELL), xEnd=Math.min(N,(cx+1)*CELL);
+    for(let y=cy*CELL;y<yEnd;y++) for(let x=cx*CELL;x<xEnd;x++){
+      const i=y*N+x; if(tgt[i]){ t++; if(uD[i]) u++; }
+    }
+    if(t>=6){ need++; if(u>=Math.max(2,t*.25)) got++; }
+  }
+  return need?got/need:0;
+}
+
+function judgeWriting(){
   const user=maskOf(ink), nUser=cnt(user);
-  if(nUser<120||strokes===0){
+  if(nUser<120||strokes===0) return {empty:true};
+  const tgt=targetMask(), nTgt=Math.max(1,cnt(tgt));
+  const coverage=inter(tgt,dilate(user,R_COV))/nTgt;
+  const cells=cellCoverage(user,tgt);
+  const precision=inter(user,dilate(tgt,R_PREC))/nUser;
+  /* כמה דיו נצבע ביחס לגודל האות. מעבר נקי בעט דק מגיע ל-0.4-1.0,
+     ומילוי השטח בקישקוש עובר את 1.5. */
+  const inkRatio=nUser/nTgt;
+  /* מסלול ארוך בהרבה מהשטח שנצבע = חזרות הלוך-חזור על אותו מקום. */
+  const areaS=nUser*(S/N)*(S/N);
+  const overdraw=travel/Math.max(1,areaS/PEN);
+  const score=Math.round(Math.min(coverage,1)*30+Math.min(cells,1)*30+Math.min(precision,1)*40);
+  const scribble=inkRatio>MAX_INK||overdraw>MAX_OVERDRAW;
+  const pass=coverage>=MIN_COVER&&cells>=MIN_CELLS&&precision>=MIN_PREC&&!scribble;
+  return {coverage,cells,precision,inkRatio,overdraw,score,scribble,pass};
+}
+
+$("check").onclick=()=>{
+  const r=judgeWriting();
+  if(r.empty){
     $("result").textContent="עדיין לא כתבתם כלום. עוברים עם האצבע על האות האפורה.";
     $("bar").style.width="0%"; return;
   }
-  const tgt=targetMask(), userD=dilate(user,7), tgtD=dilate(tgt,7);
-  const coverage=inter(tgt,userD)/Math.max(1,cnt(tgt));
-  const inside=inter(user,tgtD)/nUser;
-  const score=Math.round(Math.min(coverage,1)*60+Math.min(inside,1)*40);
-  $("bar").style.width=Math.min(100,score)+"%";
+  $("bar").style.width=Math.min(100,r.score)+"%";
   const key=padLetter.u;
-  if(coverage>=.75&&inside>=.7){
+  if(r.pass){
     mastered[key]=Object.assign({},mastered[key],{[padCase]:true}); saveProgress();
     const m=mastered[key]; tone([660,880,1046]); buzz(60);
     $("bar").style.background="var(--leaf)";
-    $("result").textContent="מעולה! כתבת את "+targetChar()+" נכון ("+score+"%). "+
+    $("result").textContent="מעולה! כתבת את "+targetChar()+" נכון ("+r.score+"%). "+
       (m.up&&m.low?"סיימת את שתי הצורות! 🏆":"עכשיו נסה את הצורה השנייה.");
-  }else if(coverage<.6){
-    tone([420,360]); buzz(25); $("bar").style.background="var(--sun)";
-    $("result").textContent="כמעט ("+score+"%). חסר חלק מהאות – עברו על כל הקווים האפורים עד הסוף.";
+    return;
+  }
+  tone([420,360]); buzz(25); $("bar").style.background="var(--sun)";
+  if(r.scribble){
+    $("bar").style.background="var(--tangerine)";
+    $("result").textContent="זה נראה כמו קישקוש ולא כמו אות. עוברים על הקו האפור פעם אחת, בלי למלא את כל השטח.";
+  }else if(r.coverage<MIN_COVER||r.cells<MIN_CELLS){
+    $("result").textContent="כמעט ("+r.score+"%). חסר חלק מהאות – עברו על כל הקווים האפורים עד הסוף.";
   }else{
-    tone([420,360]); buzz(25); $("bar").style.background="var(--sun)";
-    $("result").textContent="כמעט ("+score+"%). הקו יצא החוצה – נסו להישאר בדיוק על האפור.";
+    $("result").textContent="כמעט ("+r.score+"%). הקו יצא החוצה – נסו להישאר בדיוק על האפור.";
   }
 };
 
