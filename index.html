@@ -170,6 +170,9 @@
   .langbtn{width:38px;min-height:38px;padding:0;font-size:13px;font-weight:700;background:var(--card)}
 
   /* ---- games ---- */
+  .notice{margin-bottom:10px;padding:8px 11px;font-family:var(--body);font-size:13px;line-height:1.4;
+    background:#FFE6DC;border:3px solid var(--ink);border-radius:14px;box-shadow:var(--sh-sm)}
+  .notice b{font-family:var(--display)}
   .toprow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
   .games-open{width:100%;min-height:52px;font-size:15px;padding:0 6px;background:var(--tangerine);color:#fff}
   .games-open .cnt{display:inline-block;margin-inline-start:6px;padding:1px 7px;font-size:12px;
@@ -257,6 +260,7 @@
   .wchip{font-family:var(--display);font-size:13px;padding:3px 10px;
     background:var(--card);border:3px solid var(--ink);border-radius:999px;box-shadow:var(--sh-sm)}
   .wchip .en{font-family:var(--letterface);font-weight:700;font-size:15px}
+  .wchip .pic{font-size:15px}
   .wchip.found{background:var(--leaf);color:#fff;text-decoration:line-through}
   .grid{display:grid;gap:4px;width:100%;max-width:420px;margin:0 auto;
     touch-action:none;-webkit-user-select:none;user-select:none}
@@ -299,6 +303,8 @@
     <button class="btn go" id="installBtn">📲 התקנה</button>
     <button class="btn x" id="installX" aria-label="לא עכשיו">✕</button>
   </div>
+
+  <div class="notice" id="voiceNote" hidden></div>
 
   <div class="toprow">
     <button class="btn games-open" id="gamesOpen" type="button">🎮 משחקים וניקוד</button>
@@ -437,21 +443,55 @@ const EN=[
   {u:"W",say:"דאבּל-יוּ",w:"Watch",he:"שעון",e:"⌚"},{u:"X",say:"אֶקס",w:"Fox",he:"שועל",e:"🦊"},
   {u:"Y",say:"וואי",w:"Yo-yo",he:"יו-יו",e:"🪀"},{u:"Z",say:"זי",w:"Zebra",he:"זברה",e:"🦓"}
 ];
-/* u = האות, spk = מה להקריא (שם האות), say = איך אומרים לתצוגה,
-   w = מילה לדוגמה, e = אימוג'י */
+/* u = האות, say = שם האות מנוקד, w = מילה לדוגמה, e = אימוג'י.
+   שמות האותיות מנוקדים במכוון, וגם נשלחים כך למנוע ההקראה: בלי ניקוד
+   רבים מהם הומוגרפים של מילים רגילות והמנוע קורא את המילה במקום את שם
+   האות – "אלף" כאֶלֶף, "בית" כבַּיִת, "דלת" כדֶלֶת, "למד" כלָמַד. */
 const HE=[
-  {u:"א",spk:"אלף",say:"אָלֶף",w:"אַרְיֵה",e:"🦁"},   {u:"ב",spk:"בית",say:"בֵּית",w:"בַּיִת",e:"🏠"},
-  {u:"ג",spk:"גימל",say:"גִּימֶל",w:"גְּלִידָה",e:"🍦"},{u:"ד",spk:"דלת",say:"דָּלֶת",w:"דָּג",e:"🐟"},
-  {u:"ה",spk:"הי",say:"הֵא",w:"הַר",e:"⛰️"},        {u:"ו",spk:"וו",say:"וָו",w:"וֶרֶד",e:"🌹"},
-  {u:"ז",spk:"זין",say:"זַיִן",w:"זֶבְּרָה",e:"🦓"},   {u:"ח",spk:"חית",say:"חֵית",w:"חָתוּל",e:"🐱"},
-  {u:"ט",spk:"טית",say:"טֵית",w:"טְרַקְטוֹר",e:"🚜"}, {u:"י",spk:"יוד",say:"יוֹד",w:"יָד",e:"✋"},
-  {u:"כ",spk:"כף",say:"כַּף",w:"כֶּלֶב",e:"🐶"},      {u:"ל",spk:"למד",say:"לָמֶד",w:"לִימוֹן",e:"🍋"},
-  {u:"מ",spk:"מם",say:"מֵם",w:"מַיִם",e:"💧"},       {u:"נ",spk:"נון",say:"נוּן",w:"נַעַל",e:"👟"},
-  {u:"ס",spk:"סמך",say:"סָמֶךְ",w:"סֵפֶר",e:"📖"},    {u:"ע",spk:"עין",say:"עַיִן",w:"עֵץ",e:"🌳"},
-  {u:"פ",spk:"פה",say:"פֵּא",w:"פִּיצָה",e:"🍕"},     {u:"צ",spk:"צדי",say:"צָדִי",w:"צִיפּוֹר",e:"🐦"},
-  {u:"ק",spk:"קוף",say:"קוֹף",w:"קוֹף",e:"🐵"},       {u:"ר",spk:"ריש",say:"רֵישׁ",w:"רַכֶּבֶת",e:"🚆"},
-  {u:"ש",spk:"שין",say:"שִׁין",w:"שֶׁמֶשׁ",e:"☀️"},   {u:"ת",spk:"תו",say:"תָּו",w:"תַּפּוּחַ",e:"🍎"}
+  {u:"א",say:"אָלֶף",w:"אַרְיֵה",e:"🦁"},   {u:"ב",say:"בֵּית",w:"בַּיִת",e:"🏠"},
+  {u:"ג",say:"גִּימֶל",w:"גְּלִידָה",e:"🍦"},{u:"ד",say:"דָּלֶת",w:"דָּג",e:"🐟"},
+  {u:"ה",say:"הֵא",w:"הַר",e:"⛰️"},        {u:"ו",say:"וָו",w:"וֶרֶד",e:"🌹"},
+  {u:"ז",say:"זַיִן",w:"זֶבְּרָה",e:"🦓"},   {u:"ח",say:"חֵית",w:"חָתוּל",e:"🐱"},
+  {u:"ט",say:"טֵית",w:"טְרַקְטוֹר",e:"🚜"}, {u:"י",say:"יוֹד",w:"יָד",e:"✋"},
+  {u:"כ",say:"כַּף",w:"כֶּלֶב",e:"🐶"},      {u:"ל",say:"לָמֶד",w:"לִימוֹן",e:"🍋"},
+  {u:"מ",say:"מֵם",w:"מַיִם",e:"💧"},       {u:"נ",say:"נוּן",w:"נַעַל",e:"👟"},
+  {u:"ס",say:"סָמֶךְ",w:"סֵפֶר",e:"📖"},    {u:"ע",say:"עַיִן",w:"עֵץ",e:"🌳"},
+  {u:"פ",say:"פֵּא",w:"פִּיצָה",e:"🍕"},     {u:"צ",say:"צָדִי",w:"צִיפּוֹר",e:"🐦"},
+  {u:"ק",say:"קוּף",w:"קוֹף",e:"🐵"},       {u:"ר",say:"רֵישׁ",w:"רַכֶּבֶת",e:"🚆"},
+  {u:"ש",say:"שִׁין",w:"שֶׁמֶשׁ",e:"☀️"},   {u:"ת",say:"תָּו",w:"תַּפּוּחַ",e:"🍎"}
 ];
+
+/* אוצר מילים למשחקי המילים. כל מילה עם תמונה, כדי שהתפזורת תלמד גם
+   משמעות ולא רק איות. באנגלית 3-6 אותיות, בעברית 3-5 וללא אותיות
+   סופיות – אות סופית בלוח מבלבלת ילד שמחפש את המילה מהרשימה. */
+const VOCAB_EN=[
+  ["apple","🍎"],["ball","⚽"],["bear","🐻"],["bee","🐝"],["bird","🐦"],["boat","⛵"],
+  ["book","📖"],["bread","🍞"],["bus","🚌"],["cake","🍰"],["car","🚗"],["cat","🐱"],
+  ["chair","🪑"],["cheese","🧀"],["clock","🕐"],["cloud","☁️"],["corn","🌽"],["cow","🐄"],
+  ["crab","🦀"],["cup","☕"],["dog","🐶"],["door","🚪"],["drum","🥁"],["duck","🦆"],
+  ["ear","👂"],["egg","🥚"],["eye","👁️"],["fire","🔥"],["fish","🐟"],["flower","🌸"],
+  ["fox","🦊"],["frog","🐸"],["goat","🐐"],["grape","🍇"],["hand","✋"],["hat","🎩"],
+  ["heart","❤️"],["hen","🐔"],["horse","🐴"],["house","🏠"],["ice","🧊"],["juice","🧃"],
+  ["key","🔑"],["kite","🪁"],["leaf","🍃"],["lemon","🍋"],["lion","🦁"],["milk","🥛"],
+  ["moon","🌙"],["mouse","🐭"],["nose","👃"],["orange","🍊"],["owl","🦉"],["pear","🍐"],
+  ["pig","🐷"],["pizza","🍕"],["queen","👑"],["rain","🌧️"],["ring","💍"],["rose","🌹"],
+  ["sheep","🐑"],["ship","🚢"],["shoe","👟"],["snake","🐍"],["snow","❄️"],["sock","🧦"],
+  ["spoon","🥄"],["star","⭐"],["sun","☀️"],["tiger","🐯"],["train","🚆"],["tree","🌳"],
+  ["violin","🎻"],["watch","⌚"],["water","💧"],["whale","🐋"],["zebra","🦓"]
+];
+const VOCAB_HE=[
+  ["אבטיח","🍉"],["אגס","🍐"],["אוטו","🚗"],["אריה","🦁"],["ארנב","🐰"],["בית","🏠"],
+  ["בננה","🍌"],["ביצה","🥚"],["גבינה","🧀"],["גלידה","🍦"],["גמל","🐪"],["דבורה","🐝"],
+  ["דוב","🐻"],["דלת","🚪"],["ורד","🌹"],["זברה","🦓"],["חולצה","👕"],["חלב","🥛"],
+  ["חמור","🫏"],["חתול","🐱"],["ילד","👦"],["ילדה","👧"],["כובע","🎩"],["כוס","🥃"],
+  ["כלב","🐶"],["כתר","👑"],["לחם","🍞"],["מזלג","🍴"],["מיטה","🛏️"],["נחש","🐍"],
+  ["נמר","🐯"],["נעל","👟"],["סוס","🐴"],["סירה","⛵"],["ספר","📖"],["עוגה","🍰"],
+  ["פיל","🐘"],["פיצה","🍕"],["פרה","🐄"],["פרח","🌸"],["צלחת","🍽️"],["ציפור","🐦"],
+  ["קערה","🥣"],["קרח","🧊"],["רכבת","🚆"],["שמש","☀️"],["תות","🍓"],["תיק","🎒"],
+  ["תוכי","🦜"],["תפוח","🍎"],["תפוז","🍊"]
+];
+const PICS={};
+VOCAB_EN.concat(VOCAB_HE).forEach(p=>{ PICS[p[0]]=p[1]; });
 
 const FACE_EN="'Andika','Trebuchet MS',system-ui,sans-serif";
 const FACE_HE="'Rubik',system-ui,sans-serif";
@@ -459,7 +499,7 @@ const FACE_HE_SCRIPT="'Anka','Rubik',system-ui,sans-serif";
 /* מסירים ניקוד כדי לקבל מילה באותיות בלבד ללוח התפזורת */
 const bare=s=>s.replace(/[֑-ׇ]/g,"");
 /* אותיות סופיות מבלבלות בתפזורת, ולכן מילים שמכילות אותן יוצאות מהמאגר */
-const heWords=HE.map(x=>bare(x.w)).filter(w=>/^[א-ת]{3,5}$/.test(w)&&!/[ךםןףץ]/.test(w));
+const heWords=VOCAB_HE.map(p=>p[0]).filter(w=>/^[א-ת]{3,5}$/.test(w)&&!/[ךםןףץ]/.test(w));
 
 const PACKS={
   en:{
@@ -470,7 +510,7 @@ const PACKS={
     forms:[{id:"up",  he:"גדולה", face:FACE_EN, ch:l=>l.u},
            {id:"low", he:"קטנה",  face:FACE_EN, ch:l=>l.u.toLowerCase()}],
     pairMode:"case", pairsName:"גדולה וקטנה", pairsDesc:"מתאימים כל אות גדולה לאות הקטנה שלה",
-    words:EN.map(x=>x.w).filter(w=>/^[A-Za-z]{3,6}$/.test(w)),
+    words:VOCAB_EN.map(p=>p[0]).filter(w=>/^[a-z]{3,6}$/.test(w)),
     fill:"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     song:[
       ["C",1,"a","A"],["C",1,"b","B"],["G",1,"c","C"],["G",1,"d","D"],["A",1,"e","E"],["A",1,"f","F"],["G",2,"g","G"],
@@ -485,7 +525,7 @@ const PACKS={
     done:"כל הכבוד! זה כל ה-ABC 🎉"
   },
   he:{
-    id:"he", letters:HE, dir:"rtl", speech:"he-IL",
+    id:"he", letters:HE, dir:"rtl", speech:"he-IL", speakSay:true,
     title:"איתן לומד עברית", mark:"אa", other:"ABC",
     songName:"🎵 שיר האלפבית", allName:"🔊 כל הארבע", rangeName:"כל 22 האותיות: א–ת",
     face:FACE_HE,
@@ -495,10 +535,10 @@ const PACKS={
     words:heWords,
     fill:"אבגדהוזחטיכלמנסעפצקרשת",
     song:[
-      ["C",1,"אלף","א"],["C",1,"בית","ב"],["G",1,"גימל","ג"],["G",1,"דלת","ד"],["A",1,"הי","ה"],["A",1,"וו","ו"],["G",2,"זין","ז"],
-      ["F",1,"חית","ח"],["F",1,"טית","ט"],["E",1,"יוד","י"],["E",1,"כף","כ"],["D",1,"למד","ל"],["D",1,"מם","מ"],["C",2,"נון","נ"],
-      ["G",1,"סמך","ס"],["G",1,"עין","ע"],["F",2,"פה","פ"],["E",1,"צדי","צ"],["E",1,"קוף","ק"],["D",2,"ריש","ר"],
-      ["G",1,"שין","ש"],["G",1,"תו","ת"],["F",1],["E",1],["D",2],
+      ["C",1,"אָלֶף","א"],["C",1,"בֵּית","ב"],["G",1,"גִּימֶל","ג"],["G",1,"דָּלֶת","ד"],["A",1,"הֵא","ה"],["A",1,"וָו","ו"],["G",2,"זַיִן","ז"],
+      ["F",1,"חֵית","ח"],["F",1,"טֵית","ט"],["E",1,"יוֹד","י"],["E",1,"כַּף","כ"],["D",1,"לָמֶד","ל"],["D",1,"מֵם","מ"],["C",2,"נוּן","נ"],
+      ["G",1,"סָמֶךְ","ס"],["G",1,"עַיִן","ע"],["F",2,"פֵּא","פ"],["E",1,"צָדִי","צ"],["E",1,"קוּף","ק"],["D",2,"רֵישׁ","ר"],
+      ["G",1,"שִׁין","ש"],["G",1,"תָּו","ת"],["F",1],["E",1],["D",2],
       ["C",1,"עכשיו אני יודע את כל האלפבית","עכשיו אני יודע את כל האלפבית"],["C",1],["G",1],["G",1],["A",1],["A",1],["G",2],
       ["F",1,"בואו נשיר את זה שוב יחד","בואו נשיר את זה שוב יחד"],["F",1],["E",1],["E",1],["D",1],["D",1],["C",2]
     ],
@@ -537,8 +577,22 @@ async function saveProgress(){
 let voice=null,unlocked=false;
 function pickVoice(){
   const want=PACK.speech.slice(0,2).toLowerCase();
-  const v=speechSynthesis.getVoices().filter(x=>x.lang&&x.lang.toLowerCase().startsWith(want));
+  const all=speechSynthesis.getVoices();
+  let v=all.filter(x=>x.lang&&x.lang.toLowerCase().startsWith(want));
+  /* יש מנועים שלא מדווחים קוד שפה תקין, ולכן גם חיפוש לפי שם */
+  if(!v.length&&want==="he") v=all.filter(x=>/hebrew|ivrit|carmit|asaf/i.test(x.name));
   voice=v.find(x=>/samantha|zira|karen|carmit|google/i.test(x.name))||v[0]||null;
+  showVoiceNote(!voice);
+}
+/* בלי קול בשפה הנכונה המנוע יקריא את הטקסט בפונטיקה של שפה אחרת,
+   וזה יישמע שגוי לגמרי. עדיף להגיד למשתמש מאשר להשמיע ג'יבריש. */
+function showVoiceNote(missing){
+  const el=$("voiceNote"); if(!el) return;
+  el.hidden=!missing;
+  if(missing) el.innerHTML='<b>אין קול '+(PACK.id==="he"?"עברי":"אנגלי")+
+    ' מותקן במכשיר הזה</b> — ולכן ההקראה תישמע שגויה. בטלפון זה עובד בדרך כלל. '+
+    'ב-Windows: הגדרות ← זמן ושפה ← שפה ← הוספת שפה ← '+
+    (PACK.id==="he"?"עברית":"English")+' עם רכיב הדיבור.';
 }
 if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
 document.addEventListener("pointerdown",()=>{
@@ -557,8 +611,9 @@ function speak(t,rate,onend){
    הודעת רישיות בכלל – וההגייה היא שם האות האמיתי מהמנוע עצמו. */
 function speakLetter(l,rate,onend){
   if(!l) return;
-  /* בעברית מקריאים את שם האות (אלף), באנגלית את התו עצמו בקטן */
-  speak(SAY_AS[l.u]||l.spk||String(l.u||"").toLowerCase(),rate||.7,onend);
+  /* בעברית מקריאים את שם האות המנוקד, באנגלית את התו עצמו בקטן */
+  const t=SAY_AS[l.u]||(PACK.speakSay?l.say:String(l.u||"").toLowerCase());
+  speak(t,rate||.7,onend);
 }
 let ac;
 function audio(){
@@ -1194,7 +1249,9 @@ $("check").onclick=()=>{
     placed.forEach(p=>{
       const s=document.createElement("span");
       s.className="wchip"+(p.done?" found":"");
-      s.innerHTML='<span class="en" style="font-family:'+PACK.face+'">'+p.word+'</span>';
+      const pic=PICS[p.word]||"";
+      s.innerHTML=(pic?'<span class="pic">'+pic+'</span> ':'')+
+        '<span class="en" style="font-family:'+PACK.face+'">'+p.word+'</span>';
       box.appendChild(s);
     });
   }
