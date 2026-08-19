@@ -302,23 +302,25 @@
 </section>
 
 <script>
-/* en = שם האות באנגלית לקריאה קולית. בלעדיו מנועי הקראה מסוימים
-   מקריאים אות גדולה בודדת כ-"capital A" במקום פשוט "A". */
 const L=[
-  {u:"A",en:"ay",say:"איי",w:"Apple",he:"תפוח",e:"🍎"},{u:"B",en:"bee",say:"בּי",w:"Ball",he:"כדור",e:"⚽"},
-  {u:"C",en:"see",say:"סי",w:"Cat",he:"חתול",e:"🐱"},{u:"D",en:"dee",say:"די",w:"Dog",he:"כלב",e:"🐶"},
-  {u:"E",en:"ee",say:"אי",w:"Egg",he:"ביצה",e:"🥚"},{u:"F",en:"eff",say:"אֶף",w:"Fish",he:"דג",e:"🐟"},
-  {u:"G",en:"jee",say:"ג'י",w:"Giraffe",he:"ג'ירפה",e:"🦒"},{u:"H",en:"aitch",say:"אייץ'",w:"House",he:"בית",e:"🏠"},
-  {u:"I",en:"eye",say:"איי",w:"Ice cream",he:"גלידה",e:"🍦"},{u:"J",en:"jay",say:"ג'יי",w:"Juice",he:"מיץ",e:"🧃"},
-  {u:"K",en:"kay",say:"קיי",w:"Key",he:"מפתח",e:"🔑"},{u:"L",en:"ell",say:"אֶל",w:"Lion",he:"אריה",e:"🦁"},
-  {u:"M",en:"em",say:"אֶם",w:"Moon",he:"ירח",e:"🌙"},{u:"N",en:"en",say:"אֶן",w:"Nose",he:"אף",e:"👃"},
-  {u:"O",en:"oh",say:"או",w:"Orange",he:"תפוז",e:"🍊"},{u:"P",en:"pee",say:"פּי",w:"Pizza",he:"פיצה",e:"🍕"},
-  {u:"Q",en:"cue",say:"קיוּ",w:"Queen",he:"מלכה",e:"👑"},{u:"R",en:"ar",say:"אָר",w:"Rainbow",he:"קשת",e:"🌈"},
-  {u:"S",en:"ess",say:"אֶס",w:"Sun",he:"שמש",e:"☀️"},{u:"T",en:"tee",say:"טי",w:"Tree",he:"עץ",e:"🌳"},
-  {u:"U",en:"you",say:"יוּ",w:"Umbrella",he:"מטרייה",e:"☂️"},{u:"V",en:"vee",say:"וי",w:"Violin",he:"כינור",e:"🎻"},
-  {u:"W",en:"double you",say:"דאבּל-יוּ",w:"Watch",he:"שעון",e:"⌚"},{u:"X",en:"ex",say:"אֶקס",w:"Fox",he:"שועל",e:"🦊"},
-  {u:"Y",en:"why",say:"וואי",w:"Yo-yo",he:"יו-יו",e:"🪀"},{u:"Z",en:"zee",say:"זי",w:"Zebra",he:"זברה",e:"🦓"}
+  {u:"A",say:"איי",w:"Apple",he:"תפוח",e:"🍎"},{u:"B",say:"בּי",w:"Ball",he:"כדור",e:"⚽"},
+  {u:"C",say:"סי",w:"Cat",he:"חתול",e:"🐱"},{u:"D",say:"די",w:"Dog",he:"כלב",e:"🐶"},
+  {u:"E",say:"אי",w:"Egg",he:"ביצה",e:"🥚"},{u:"F",say:"אֶף",w:"Fish",he:"דג",e:"🐟"},
+  {u:"G",say:"ג'י",w:"Giraffe",he:"ג'ירפה",e:"🦒"},{u:"H",say:"אייץ'",w:"House",he:"בית",e:"🏠"},
+  {u:"I",say:"איי",w:"Ice cream",he:"גלידה",e:"🍦"},{u:"J",say:"ג'יי",w:"Juice",he:"מיץ",e:"🧃"},
+  {u:"K",say:"קיי",w:"Key",he:"מפתח",e:"🔑"},{u:"L",say:"אֶל",w:"Lion",he:"אריה",e:"🦁"},
+  {u:"M",say:"אֶם",w:"Moon",he:"ירח",e:"🌙"},{u:"N",say:"אֶן",w:"Nose",he:"אף",e:"👃"},
+  {u:"O",say:"או",w:"Orange",he:"תפוז",e:"🍊"},{u:"P",say:"פּי",w:"Pizza",he:"פיצה",e:"🍕"},
+  {u:"Q",say:"קיוּ",w:"Queen",he:"מלכה",e:"👑"},{u:"R",say:"אָר",w:"Rainbow",he:"קשת",e:"🌈"},
+  {u:"S",say:"אֶס",w:"Sun",he:"שמש",e:"☀️"},{u:"T",say:"טי",w:"Tree",he:"עץ",e:"🌳"},
+  {u:"U",say:"יוּ",w:"Umbrella",he:"מטרייה",e:"☂️"},{u:"V",say:"וי",w:"Violin",he:"כינור",e:"🎻"},
+  {u:"W",say:"דאבּל-יוּ",w:"Watch",he:"שעון",e:"⌚"},{u:"X",say:"אֶקס",w:"Fox",he:"שועל",e:"🦊"},
+  {u:"Y",say:"וואי",w:"Yo-yo",he:"יו-יו",e:"🪀"},{u:"Z",say:"זי",w:"Zebra",he:"זברה",e:"🦓"}
 ];
+/* תיקון נקודתי להגייה של אות מסוימת, אם מנוע ההקראה טועה בה.
+   ריק בכוונה – ברירת המחדל היא לתת למנוע את התו עצמו, כי יש לו
+   טיפול מובנה בשמות אותיות שעדיף על כל איות פונטי שננחש. */
+const SAY_AS={};
 const groups=[]; for(let i=0;i<L.length;i+=4) groups.push(L.slice(i,i+4));
 const $=id=>document.getElementById(id);
 let g=0,quizAnswer=null,visited=new Set([0]),mastered={},padLetter=null,padCase="up";
@@ -354,8 +356,14 @@ function speak(t,rate,onend){
   u.lang="en-US"; u.rate=rate||.7; u.pitch=1.05; if(voice) u.voice=voice; if(onend) u.onend=onend;
   speechSynthesis.speak(u);
 }
-/* הקראת שם האות – תמיד דרך השדה en, כדי שלא יוקרא "capital" לפני האות */
-function speakLetter(l,rate,onend){ speak((l&&l.en)||String(l&&l.u||"").toLowerCase(),rate||.7,onend); }
+/* הקראת שם האות. מעבירים למנוע את התו בקטן ולא בגדול: מנועים
+   מסוימים מוסיפים "capital" לפני אות גדולה בודדת, ובאות קטנה אין
+   הודעת רישיות בכלל – וההגייה היא שם האות האמיתי מהמנוע עצמו. */
+function speakLetter(l,rate,onend){
+  if(!l) return;
+  const ch=String(l.u||"").toLowerCase();
+  speak(SAY_AS[l.u]||ch,rate||.7,onend);
+}
 let ac;
 function tone(fs){
   try{
@@ -606,12 +614,31 @@ $("check").onclick=()=>{
   }
   function paintBest(){ $("bestListen").textContent=best.listen; $("bestPairs").textContent=best.pairs; }
 
-  /* המשחק בודק את כל האותיות שנלמדו עד הקבוצה הנוכחית */
-  const pool=()=>L.slice(0,(g+1)*4);
   const shuffle=a=>{ a=a.slice();
     for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; }
     return a; };
   const hush=()=>{ try{ speechSynthesis.cancel(); }catch(e){} };
+
+  /* המשחקים מכסים את כל 26 האותיות. כל משחק שולף מחפיסה מעורבבת
+     ולא באקראי, כך שסבבים רצופים ממשיכים לאותיות חדשות ולא חוזרים
+     על אותן אותיות עד שכל האלפבית נגמר. */
+  const decks={listen:[],pairs:[]};
+  function draw(key,n){
+    const out=[];
+    while(out.length<n){
+      if(!decks[key].length){
+        decks[key]=shuffle(L);
+        /* 26 לא מתחלק בגודל הסבב, ולכן סבב יכול להתחיל בסוף מחלק
+           אחד ולהמשיך לתחילת הבא. בלי זה אותה אות עלולה להישלף
+           פעמיים באותו סבב ולהופיע כשני אריחים זהים. */
+        const used=new Set(out.map(x=>x.u));
+        if(used.size) decks[key].sort((a,b)=>(used.has(a.u)?1:0)-(used.has(b.u)?1:0));
+      }
+      out.push(decks[key].shift());
+    }
+    return out;
+  }
+  const deckLeft=key=>decks[key].length;
 
   function show(v){
     for(const k in views) views[k].classList.toggle("on",k===v);
@@ -620,22 +647,24 @@ $("check").onclick=()=>{
   function setScore(n){ score=Math.max(0,n); $("scoreNow").textContent=score; }
 
   function openMenu(){
-    const p=pool();
-    $("grange").textContent="האותיות במשחק: "+p[0].u+"–"+p[p.length-1].u;
+    $("grange").textContent="כל 26 האותיות: A–Z";
     hush(); show("menu"); sheet.classList.add("on");
   }
   function closeGames(){ hush(); sheet.classList.remove("on"); }
 
   /* ---- game 1: listen and choose ---- */
-  let qi=0,target=null,tries=0;
-  function startListen(){ mode="listen"; setScore(0); qi=0; show("listen"); nextQ(); }
+  let qi=0,target=null,tries=0,roundQs=[];
+  function startListen(){
+    mode="listen"; setScore(0); qi=0; roundQs=draw("listen",QN);
+    show("listen"); nextQ();
+  }
   function nextQ(){
     if(qi>=QN) return endGame();
-    qi++; tries=0; target=null;
-    const p=pool();
+    tries=0; target=null;
+    const t=roundQs[qi]; qi++;
     $("listenQ").textContent="שאלה "+qi+" מתוך "+QN;
-    const t=p[Math.floor(Math.random()*p.length)];
-    const others=shuffle(p.filter(x=>x.u!==t.u)).slice(0,3);
+    /* המסיחים נבחרים מכל האלפבית, לא רק מהחפיסה של הסבב */
+    const others=shuffle(L.filter(x=>x.u!==t.u)).slice(0,3);
     const box=$("listenOpts"); box.innerHTML="";
     shuffle([t].concat(others)).forEach(o=>{
       const b=document.createElement("button");
@@ -663,9 +692,9 @@ $("check").onclick=()=>{
   let firstPick=null,matched=0,misses=0,totalPairs=0;
   function startPairs(){
     mode="pairs"; setScore(0); matched=0; misses=0; firstPick=null; show("pairs");
-    const p=shuffle(pool()).slice(0,PN);
+    const p=draw("pairs",PN);
     totalPairs=p.length;
-    $("pairsQ").textContent="מתאימים "+totalPairs+" זוגות של אותיות";
+    $("pairsQ").textContent="מתאימים "+totalPairs+" זוגות · עוד "+deckLeft("pairs")+" אותיות עד סוף האלפבית";
     const grid=$("pairsGrid"); grid.innerHTML="";
     const tiles=shuffle(p.map(l=>({l,c:"up"})).concat(p.map(l=>({l,c:"low"}))));
     tiles.forEach(t=>{
