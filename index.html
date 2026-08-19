@@ -133,6 +133,62 @@
   .help-box ol{margin:0 0 14px;padding-inline-start:22px;font-size:15px;line-height:1.75}
   .help-box .btn{width:100%;min-height:48px;font-size:16px;background:var(--grape);color:#fff}
 
+  /* ---- games ---- */
+  .games-open{width:100%;min-height:52px;margin-bottom:10px;font-size:17px;background:var(--tangerine);color:#fff}
+
+  .games{position:fixed;inset:0;z-index:70;display:none;flex-direction:column;background:var(--sky);
+    padding:calc(8px + var(--safe-t)) 10px calc(10px + var(--safe-b));overflow-y:auto;overscroll-behavior:contain}
+  .games.on{display:flex}
+  .games-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .games-top h2{flex:1 1 auto;margin:0;font-family:var(--display);font-size:20px}
+  .chip{font-family:var(--display);font-size:16px;background:var(--sun);
+    border:3px solid var(--ink);border-radius:999px;padding:4px 12px;box-shadow:var(--sh-sm)}
+
+  .gview{display:none;flex:1 1 auto;flex-direction:column;width:100%;max-width:520px;margin:0 auto}
+  .gview.on{display:flex}
+
+  .grange{font-family:var(--display);font-size:14px;text-align:center;margin:0 0 12px;padding:5px 10px;
+    background:var(--card);border:3px solid var(--ink);border-radius:999px;box-shadow:var(--sh-sm)}
+  .gcard{display:grid;gap:2px;width:100%;margin-bottom:12px;padding:12px 14px;text-align:start;cursor:pointer;
+    font-family:var(--display);color:var(--ink);background:var(--card);border:4px solid var(--ink);
+    border-radius:18px;box-shadow:var(--sh);transition:transform .07s ease,box-shadow .07s ease}
+  .gcard:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}
+  .gcard:focus-visible{outline:4px solid var(--grape);outline-offset:3px}
+  .gicon{font-size:30px}
+  .gname{font-size:19px;font-weight:800}
+  .gdesc{font-family:var(--body);font-size:13px;line-height:1.35}
+  .gbest{font-size:13px;margin-top:4px;color:#4A5A78}
+
+  .gq{font-family:var(--display);font-size:16px;text-align:center;margin:0 0 10px}
+  .speaker{display:block;width:112px;height:112px;margin:6px auto 8px;border-width:4px;border-radius:50%;
+    font-size:44px;background:var(--leaf);color:#fff;box-shadow:var(--sh)}
+  .ghint{font-family:var(--body);font-size:13px;text-align:center;margin:0 0 14px}
+  .gopts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{min-height:74px;font-family:var(--letterface);font-weight:700;font-size:38px;background:var(--card)}
+  .opt.good{background:var(--leaf);color:#fff}
+  .opt.bad{background:#FFD9CC;opacity:.6}
+
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .tile{min-height:66px;font-family:var(--letterface);font-weight:700;font-size:32px;cursor:pointer;
+    color:var(--ink);background:var(--card);border:3px solid var(--ink);border-radius:14px;box-shadow:var(--sh-sm);
+    transition:transform .07s ease,box-shadow .07s ease}
+  .tile.tlow{background:#FFF4DA}
+  .tile.sel{background:var(--grape);color:#fff;transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .tile.bad{background:#FFD9CC}
+  .tile.done{background:var(--leaf);color:#fff;opacity:.5}
+  .tile:focus-visible{outline:4px solid var(--grape);outline-offset:3px}
+
+  .gend{justify-content:center;text-align:center;font-family:var(--display)}
+  .stars{font-size:44px;margin:0 0 6px;line-height:1.1}
+  .endscore{font-size:22px;margin:0 0 6px}
+  .endmsg{font-size:16px;margin:0 0 18px;line-height:1.4}
+  .endbtns{display:grid;gap:10px;width:100%;max-width:320px;margin:0 auto}
+  .endbtns .btn{min-height:52px;font-size:17px}
+  .again{background:var(--leaf);color:#fff}
+  .back{background:var(--card)}
+
+  @media (min-width:520px){ .tiles{grid-template-columns:repeat(4,1fr)} }
+
   @media (min-width:720px){
     .board{grid-template-columns:repeat(4,1fr)}
     .bar-in{grid-template-columns:64px 1fr 1fr 64px}
@@ -152,6 +208,8 @@
     <button class="btn go" id="installBtn">📲 התקנה</button>
     <button class="btn x" id="installX" aria-label="לא עכשיו">✕</button>
   </div>
+
+  <button class="btn games-open" id="gamesOpen" type="button">🎮 משחקים וניקוד</button>
 
   <main class="board" id="board"></main>
   <p class="status" id="status"></p>
@@ -187,6 +245,52 @@
   </div>
 </section>
 
+<section class="games" id="games" role="dialog" aria-modal="true" aria-labelledby="gamesTitle">
+  <div class="games-top">
+    <h2 id="gamesTitle">משחקים</h2>
+    <div class="chip" id="scoreChip" hidden>⭐ <b id="scoreNow">0</b></div>
+    <button class="btn close" id="gamesClose" type="button" aria-label="סגירה">✕</button>
+  </div>
+
+  <div class="gview on" id="gmenu">
+    <p class="grange" id="grange"></p>
+    <button class="gcard" id="playListen" type="button">
+      <span class="gicon">🎧</span>
+      <span class="gname">שומעים ובוחרים</span>
+      <span class="gdesc">לוחצים על הרמקול, שומעים את שם האות, ובוחרים אותה מבין ארבע</span>
+      <span class="gbest">🏆 שיא: <b id="bestListen">0</b></span>
+    </button>
+    <button class="gcard" id="playPairs" type="button">
+      <span class="gicon">🔤</span>
+      <span class="gname">גדולה וקטנה</span>
+      <span class="gdesc">מתאימים כל אות גדולה לאות הקטנה שלה</span>
+      <span class="gbest">🏆 שיא: <b id="bestPairs">0</b></span>
+    </button>
+  </div>
+
+  <div class="gview" id="gListen">
+    <p class="gq" id="listenQ"></p>
+    <button class="btn speaker" id="speakerBtn" type="button" aria-label="להשמיע שוב את האות">🔊</button>
+    <p class="ghint">לוחצים על הרמקול, ואז בוחרים את האות ששמעתם</p>
+    <div class="gopts" id="listenOpts"></div>
+  </div>
+
+  <div class="gview" id="gPairs">
+    <p class="gq" id="pairsQ"></p>
+    <div class="tiles" id="pairsGrid"></div>
+  </div>
+
+  <div class="gview gend" id="gEnd">
+    <p class="stars" id="endStars"></p>
+    <p class="endscore">הניקוד שלך: <b id="endScore">0</b></p>
+    <p class="endmsg" id="endMsg"></p>
+    <div class="endbtns">
+      <button class="btn again" id="playAgain" type="button">🔁 עוד פעם</button>
+      <button class="btn back" id="backMenu" type="button">← חזרה למשחקים</button>
+    </div>
+  </div>
+</section>
+
 <section class="help" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="help-box">
     <h3 id="helpTitle">להוספת האפליקציה למסך הבית</h3>
@@ -196,20 +300,22 @@
 </section>
 
 <script>
+/* en = שם האות באנגלית לקריאה קולית. בלעדיו מנועי הקראה מסוימים
+   מקריאים אות גדולה בודדת כ-"capital A" במקום פשוט "A". */
 const L=[
-  {u:"A",say:"איי",w:"Apple",he:"תפוח",e:"🍎"},{u:"B",say:"בּי",w:"Ball",he:"כדור",e:"⚽"},
-  {u:"C",say:"סי",w:"Cat",he:"חתול",e:"🐱"},{u:"D",say:"די",w:"Dog",he:"כלב",e:"🐶"},
-  {u:"E",say:"אי",w:"Egg",he:"ביצה",e:"🥚"},{u:"F",say:"אֶף",w:"Fish",he:"דג",e:"🐟"},
-  {u:"G",say:"ג'י",w:"Giraffe",he:"ג'ירפה",e:"🦒"},{u:"H",say:"אייץ'",w:"House",he:"בית",e:"🏠"},
-  {u:"I",say:"איי",w:"Ice cream",he:"גלידה",e:"🍦"},{u:"J",say:"ג'יי",w:"Juice",he:"מיץ",e:"🧃"},
-  {u:"K",say:"קיי",w:"Key",he:"מפתח",e:"🔑"},{u:"L",say:"אֶל",w:"Lion",he:"אריה",e:"🦁"},
-  {u:"M",say:"אֶם",w:"Moon",he:"ירח",e:"🌙"},{u:"N",say:"אֶן",w:"Nose",he:"אף",e:"👃"},
-  {u:"O",say:"או",w:"Orange",he:"תפוז",e:"🍊"},{u:"P",say:"פּי",w:"Pizza",he:"פיצה",e:"🍕"},
-  {u:"Q",say:"קיוּ",w:"Queen",he:"מלכה",e:"👑"},{u:"R",say:"אָר",w:"Rainbow",he:"קשת",e:"🌈"},
-  {u:"S",say:"אֶס",w:"Sun",he:"שמש",e:"☀️"},{u:"T",say:"טי",w:"Tree",he:"עץ",e:"🌳"},
-  {u:"U",say:"יוּ",w:"Umbrella",he:"מטרייה",e:"☂️"},{u:"V",say:"וי",w:"Violin",he:"כינור",e:"🎻"},
-  {u:"W",say:"דאבּל-יוּ",w:"Watch",he:"שעון",e:"⌚"},{u:"X",say:"אֶקס",w:"Fox",he:"שועל",e:"🦊"},
-  {u:"Y",say:"וואי",w:"Yo-yo",he:"יו-יו",e:"🪀"},{u:"Z",say:"זי",w:"Zebra",he:"זברה",e:"🦓"}
+  {u:"A",en:"ay",say:"איי",w:"Apple",he:"תפוח",e:"🍎"},{u:"B",en:"bee",say:"בּי",w:"Ball",he:"כדור",e:"⚽"},
+  {u:"C",en:"see",say:"סי",w:"Cat",he:"חתול",e:"🐱"},{u:"D",en:"dee",say:"די",w:"Dog",he:"כלב",e:"🐶"},
+  {u:"E",en:"ee",say:"אי",w:"Egg",he:"ביצה",e:"🥚"},{u:"F",en:"eff",say:"אֶף",w:"Fish",he:"דג",e:"🐟"},
+  {u:"G",en:"jee",say:"ג'י",w:"Giraffe",he:"ג'ירפה",e:"🦒"},{u:"H",en:"aitch",say:"אייץ'",w:"House",he:"בית",e:"🏠"},
+  {u:"I",en:"eye",say:"איי",w:"Ice cream",he:"גלידה",e:"🍦"},{u:"J",en:"jay",say:"ג'יי",w:"Juice",he:"מיץ",e:"🧃"},
+  {u:"K",en:"kay",say:"קיי",w:"Key",he:"מפתח",e:"🔑"},{u:"L",en:"ell",say:"אֶל",w:"Lion",he:"אריה",e:"🦁"},
+  {u:"M",en:"em",say:"אֶם",w:"Moon",he:"ירח",e:"🌙"},{u:"N",en:"en",say:"אֶן",w:"Nose",he:"אף",e:"👃"},
+  {u:"O",en:"oh",say:"או",w:"Orange",he:"תפוז",e:"🍊"},{u:"P",en:"pee",say:"פּי",w:"Pizza",he:"פיצה",e:"🍕"},
+  {u:"Q",en:"cue",say:"קיוּ",w:"Queen",he:"מלכה",e:"👑"},{u:"R",en:"ar",say:"אָר",w:"Rainbow",he:"קשת",e:"🌈"},
+  {u:"S",en:"ess",say:"אֶס",w:"Sun",he:"שמש",e:"☀️"},{u:"T",en:"tee",say:"טי",w:"Tree",he:"עץ",e:"🌳"},
+  {u:"U",en:"you",say:"יוּ",w:"Umbrella",he:"מטרייה",e:"☂️"},{u:"V",en:"vee",say:"וי",w:"Violin",he:"כינור",e:"🎻"},
+  {u:"W",en:"double you",say:"דאבּל-יוּ",w:"Watch",he:"שעון",e:"⌚"},{u:"X",en:"ex",say:"אֶקס",w:"Fox",he:"שועל",e:"🦊"},
+  {u:"Y",en:"why",say:"וואי",w:"Yo-yo",he:"יו-יו",e:"🪀"},{u:"Z",en:"zee",say:"זי",w:"Zebra",he:"זברה",e:"🦓"}
 ];
 const groups=[]; for(let i=0;i<L.length;i+=4) groups.push(L.slice(i,i+4));
 const $=id=>document.getElementById(id);
@@ -246,6 +352,8 @@ function speak(t,rate,onend){
   u.lang="en-US"; u.rate=rate||.7; u.pitch=1.05; if(voice) u.voice=voice; if(onend) u.onend=onend;
   speechSynthesis.speak(u);
 }
+/* הקראת שם האות – תמיד דרך השדה en, כדי שלא יוקרא "capital" לפני האות */
+function speakLetter(l,rate,onend){ speak((l&&l.en)||String(l&&l.u||"").toLowerCase(),rate||.7,onend); }
 let ac;
 function tone(fs){
   try{
@@ -284,7 +392,7 @@ function renderBoard(){
       '<div class="tip">אומרים: <span>'+l.say+'</span></div>';
     const hear=document.createElement("button");
     hear.className="btn hear"; hear.type="button"; hear.innerHTML="🔊 האות";
-    hear.onclick=()=>{ quizAnswer?checkQuiz(l,card):(flash(card),speak(l.u,.65)); };
+    hear.onclick=()=>{ quizAnswer?checkQuiz(l,card):(flash(card),speakLetter(l,.65)); };
     card.appendChild(hear);
     const wr=document.createElement("button");
     wr.className="btn write"; wr.type="button"; wr.innerHTML="✍️ לכתוב";
@@ -312,7 +420,7 @@ $("all").onclick=()=>{
     if(i>=groups[g].length){ cards.forEach(c=>c.classList.remove("speaking")); return; }
     const l=groups[g][i],card=cards[i]; i++;
     cards.forEach(c=>c.classList.remove("speaking")); card.classList.add("speaking");
-    speak(l.u,.6,()=>setTimeout(nx,450));
+    speakLetter(l,.6,()=>setTimeout(nx,450));
   })();
 };
 $("quiz").onclick=()=>{
@@ -320,7 +428,7 @@ $("quiz").onclick=()=>{
   document.querySelectorAll(".letter").forEach(c=>c.classList.remove("hit","miss","speaking"));
   $("status").textContent="הקשיבו ולחצו על הכפתור הירוק הנכון";
   $("quiz").textContent="🔁 שוב";
-  setTimeout(()=>speak(quizAnswer.u,.6),250);
+  setTimeout(()=>speakLetter(quizAnswer,.6),250);
 };
 function checkQuiz(l,card){
   if(l.u===quizAnswer.u){
@@ -330,12 +438,13 @@ function checkQuiz(l,card){
   }else{
     card.classList.add("miss"); tone([300,220]); buzz([25,60,25]);
     $("status").textContent="לא זאת. הקשיבו שוב";
-    setTimeout(()=>{ card.classList.remove("miss"); speak(quizAnswer.u,.6); },900);
+    setTimeout(()=>{ card.classList.remove("miss"); speakLetter(quizAnswer,.6); },900);
   }
 }
 $("next").onclick=()=>go(g+1);
 $("prev").onclick=()=>go(g-1);
 document.addEventListener("keydown",e=>{
+  if($("games").classList.contains("on")){ if(e.key==="Escape") $("gamesClose").click(); return; }
   if($("pad").classList.contains("on")) return;
   if(e.key==="ArrowLeft") go(g+1);
   if(e.key==="ArrowRight") go(g-1);
@@ -344,7 +453,7 @@ document.addEventListener("keydown",e=>{
 let sx=0,sy=0;
 document.addEventListener("touchstart",e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
 document.addEventListener("touchend",e=>{
-  if($("pad").classList.contains("on")) return;
+  if($("pad").classList.contains("on")||$("games").classList.contains("on")) return;
   const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
   if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(dy)*2) go(dx<0?g+1:g-1);
 },{passive:true});
@@ -399,15 +508,18 @@ ink.addEventListener("pointermove",e=>{ if(!drawing) return; e.preventDefault();
 function openPad(l){
   padLetter=l; padCase="up";
   $("caseUp").setAttribute("aria-pressed","true"); $("caseLow").setAttribute("aria-pressed","false");
+  /* התוויות חייבות להשתנות לפי האות שנבחרה, אחרת תמיד מוצג A/a */
+  $("caseUp").textContent=l.u+" גדולה";
+  $("caseLow").textContent=l.u.toLowerCase()+" קטנה";
   $("padTitle").textContent="כתיבת האות "+l.u+l.u.toLowerCase();
   $("pad").classList.add("on");
   requestAnimationFrame(()=>{ fitCanvas(guide,gctx); fitCanvas(ink,ictx); drawGuide(); clearInk(); });
-  speak(l.u,.65);
+  speakLetter(l,.65);
 }
 function setCase(c){
   padCase=c;
   $("caseUp").setAttribute("aria-pressed",c==="up"); $("caseLow").setAttribute("aria-pressed",c==="low");
-  drawGuide(); clearInk(); speak(padLetter.u,.65);
+  drawGuide(); clearInk(); speakLetter(padLetter,.65);
 }
 $("caseUp").onclick=()=>setCase("up");
 $("caseLow").onclick=()=>setCase("low");
@@ -472,6 +584,142 @@ $("check").onclick=()=>{
     $("result").textContent="כמעט ("+score+"%). הקו יצא החוצה – נסו להישאר בדיוק על האפור.";
   }
 };
+
+/* ---- games with scoring ---- */
+(function(){
+  const sheet=$("games");
+  const views={menu:$("gmenu"),listen:$("gListen"),pairs:$("gPairs"),end:$("gEnd")};
+  const BKEY="abc-best";
+  const QN=10, PN=6;
+  let best={listen:0,pairs:0}, mode=null, score=0;
+
+  async function loadBest(){
+    try{ const r=await window.storage.get(BKEY); if(r&&r.value) best=Object.assign(best,JSON.parse(r.value)); }
+    catch(e){ try{ const v=localStorage.getItem(BKEY); if(v) best=Object.assign(best,JSON.parse(v)); }catch(e2){} }
+    paintBest();
+  }
+  async function saveBest(){
+    try{ await window.storage.set(BKEY,JSON.stringify(best)); }
+    catch(e){ try{ localStorage.setItem(BKEY,JSON.stringify(best)); }catch(e2){} }
+  }
+  function paintBest(){ $("bestListen").textContent=best.listen; $("bestPairs").textContent=best.pairs; }
+
+  /* המשחק בודק את כל האותיות שנלמדו עד הקבוצה הנוכחית */
+  const pool=()=>L.slice(0,(g+1)*4);
+  const shuffle=a=>{ a=a.slice();
+    for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; }
+    return a; };
+  const hush=()=>{ try{ speechSynthesis.cancel(); }catch(e){} };
+
+  function show(v){
+    for(const k in views) views[k].classList.toggle("on",k===v);
+    $("scoreChip").hidden = (v==="menu"||v==="end");
+  }
+  function setScore(n){ score=Math.max(0,n); $("scoreNow").textContent=score; }
+
+  function openMenu(){
+    const p=pool();
+    $("grange").textContent="האותיות במשחק: "+p[0].u+"–"+p[p.length-1].u;
+    hush(); show("menu"); sheet.classList.add("on");
+  }
+  function closeGames(){ hush(); sheet.classList.remove("on"); }
+
+  /* ---- game 1: listen and choose ---- */
+  let qi=0,target=null,tries=0;
+  function startListen(){ mode="listen"; setScore(0); qi=0; show("listen"); nextQ(); }
+  function nextQ(){
+    if(qi>=QN) return endGame();
+    qi++; tries=0; target=null;
+    const p=pool();
+    $("listenQ").textContent="שאלה "+qi+" מתוך "+QN;
+    const t=p[Math.floor(Math.random()*p.length)];
+    const others=shuffle(p.filter(x=>x.u!==t.u)).slice(0,3);
+    const box=$("listenOpts"); box.innerHTML="";
+    shuffle([t].concat(others)).forEach(o=>{
+      const b=document.createElement("button");
+      b.className="btn opt"; b.type="button"; b.textContent=o.u;
+      b.setAttribute("aria-label","האות "+o.u);
+      b.onclick=()=>answer(o,b);
+      box.appendChild(b);
+    });
+    target=t;
+    setTimeout(()=>{ if(target) speakLetter(target,.6); },350);
+  }
+  function answer(o,b){
+    if(!target) return;
+    if(o.u===target.u){
+      b.classList.add("good"); tone([660,880]); buzz(40);
+      setScore(score+(tries===0?10:5));
+      target=null; setTimeout(nextQ,750);
+    }else{
+      tries++; b.classList.add("bad"); b.disabled=true; tone([300,220]); buzz([25,60,25]);
+      const again=target; setTimeout(()=>{ if(target===again) speakLetter(again,.6); },420);
+    }
+  }
+
+  /* ---- game 2: match upper to lower ---- */
+  let firstPick=null,matched=0,misses=0,totalPairs=0;
+  function startPairs(){
+    mode="pairs"; setScore(0); matched=0; misses=0; firstPick=null; show("pairs");
+    const p=shuffle(pool()).slice(0,PN);
+    totalPairs=p.length;
+    $("pairsQ").textContent="מתאימים "+totalPairs+" זוגות של אותיות";
+    const grid=$("pairsGrid"); grid.innerHTML="";
+    const tiles=shuffle(p.map(l=>({l,c:"up"})).concat(p.map(l=>({l,c:"low"}))));
+    tiles.forEach(t=>{
+      const b=document.createElement("button");
+      b.className="tile "+(t.c==="up"?"tup":"tlow"); b.type="button";
+      b.textContent = t.c==="up" ? t.l.u : t.l.u.toLowerCase();
+      b.setAttribute("aria-label",(t.c==="up"?"אות גדולה ":"אות קטנה ")+t.l.u);
+      b.onclick=()=>pick(b,t);
+      grid.appendChild(b);
+    });
+  }
+  function pick(b,t){
+    if(b.classList.contains("done")||b.classList.contains("sel")) return;
+    speakLetter(t.l,.7);
+    if(!firstPick){ firstPick={b,t}; b.classList.add("sel"); return; }
+    const a=firstPick; firstPick=null; a.b.classList.remove("sel");
+    if(a.t.l.u===t.l.u && a.t.c!==t.c){
+      a.b.classList.add("done"); b.classList.add("done");
+      a.b.disabled=true; b.disabled=true;
+      tone([660,880]); buzz(40); matched++;
+      setScore(matched*10-misses*2);
+      if(matched===totalPairs) setTimeout(endGame,700);
+    }else{
+      misses++; setScore(matched*10-misses*2);
+      a.b.classList.add("bad"); b.classList.add("bad"); tone([300,220]); buzz([25,60,25]);
+      setTimeout(()=>{ a.b.classList.remove("bad"); b.classList.remove("bad"); },600);
+    }
+  }
+
+  /* ---- end of round ---- */
+  function endGame(){
+    hush();
+    const max = mode==="listen" ? QN*10 : totalPairs*10;
+    const pct = max ? Math.round(score/max*100) : 0;
+    const st = pct>=90?3:pct>=70?2:pct>=40?1:0;
+    $("endStars").textContent = st ? "⭐".repeat(st) : "🙂";
+    $("endScore").textContent = score;
+    let msg = st===3 ? "מושלם! כל הכבוד 🎉"
+            : st===2 ? "יפה מאוד! עוד קצת ואתה שם"
+            : st===1 ? "כל הכבוד שניסית! בוא ננסה עוד פעם"
+            : "לא נורא — בכל פעם לומדים עוד קצת";
+    if(score>best[mode]){ best[mode]=score; saveBest(); paintBest(); msg="🏆 שיא חדש! "+msg; }
+    $("endMsg").textContent=msg;
+    show("end");
+    if(st>=2) tone([523,659,784]);
+  }
+
+  $("gamesOpen").onclick=openMenu;
+  $("gamesClose").onclick=closeGames;
+  $("playListen").onclick=startListen;
+  $("playPairs").onclick=startPairs;
+  $("speakerBtn").onclick=()=>{ if(target) speakLetter(target,.6); };
+  $("playAgain").onclick=()=>{ mode==="listen"?startListen():startPairs(); };
+  $("backMenu").onclick=openMenu;
+  loadBest();
+})();
 
 renderSteps(); loadProgress();
 
