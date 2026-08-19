@@ -140,7 +140,10 @@
   .help-box .btn{width:100%;min-height:48px;font-size:16px;background:var(--grape);color:#fff}
 
   /* ---- games ---- */
-  .games-open{width:100%;min-height:52px;margin-bottom:10px;font-size:17px;background:var(--tangerine);color:#fff}
+  .toprow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .games-open{width:100%;min-height:52px;font-size:15px;padding:0 6px;background:var(--tangerine);color:#fff}
+  .abc-btn{width:100%;min-height:52px;font-size:15px;padding:0 6px;background:var(--grape);color:#fff}
+  .abc-btn.playing{background:var(--leaf)}
 
   .games{position:fixed;inset:0;z-index:70;display:none;flex-direction:column;background:var(--sky);
     padding:calc(8px + var(--safe-t)) 10px calc(10px + var(--safe-b));overflow-y:auto;overscroll-behavior:contain}
@@ -184,6 +187,21 @@
   .tile.done{background:var(--leaf);color:#fff;opacity:.5}
   .tile:focus-visible{outline:4px solid var(--grape);outline-offset:3px}
 
+  /* ---- word search ---- */
+  .words{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px}
+  .wchip{font-family:var(--display);font-size:13px;padding:3px 10px;
+    background:var(--card);border:3px solid var(--ink);border-radius:999px;box-shadow:var(--sh-sm)}
+  .wchip .en{font-family:var(--letterface);font-weight:700;font-size:15px}
+  .wchip.found{background:var(--leaf);color:#fff;text-decoration:line-through}
+  .grid{display:grid;gap:4px;width:100%;max-width:420px;margin:0 auto;
+    touch-action:none;-webkit-user-select:none;user-select:none}
+  .cell{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;
+    font-family:var(--letterface);font-weight:700;font-size:clamp(14px,4.2vw,22px);color:var(--ink);
+    background:var(--card);border:2px solid var(--ink);border-radius:8px}
+  .cell.sel{background:var(--sun)}
+  .cell.found{background:var(--leaf);color:#fff;border-color:var(--ink)}
+  .cell.bad{background:#FFD9CC}
+
   .gend{justify-content:center;text-align:center;font-family:var(--display)}
   .stars{font-size:44px;margin:0 0 6px;line-height:1.1}
   .endscore{font-size:22px;margin:0 0 6px}
@@ -215,7 +233,10 @@
     <button class="btn x" id="installX" aria-label="לא עכשיו">✕</button>
   </div>
 
-  <button class="btn games-open" id="gamesOpen" type="button">🎮 משחקים וניקוד</button>
+  <div class="toprow">
+    <button class="btn games-open" id="gamesOpen" type="button">🎮 משחקים וניקוד</button>
+    <button class="btn abc-btn" id="abcAll" type="button">🔤 כל ה-ABC</button>
+  </div>
 
   <main class="board" id="board"></main>
   <p class="status" id="status"></p>
@@ -272,6 +293,18 @@
       <span class="gdesc">מתאימים כל אות גדולה לאות הקטנה שלה</span>
       <span class="gbest">🏆 שיא: <b id="bestPairs">0</b></span>
     </button>
+    <button class="gcard" id="playSearch" type="button">
+      <span class="gicon">🔎</span>
+      <span class="gname">תפזורת אותיות</span>
+      <span class="gdesc">מוצאים את המילים שמתחבאות בלוח ומעבירים עליהן את האצבע</span>
+      <span class="gbest">🏆 שיא: <b id="bestSearch">0</b></span>
+    </button>
+  </div>
+
+  <div class="gview" id="gSearch">
+    <p class="gq" id="searchQ"></p>
+    <div class="words" id="searchWords"></div>
+    <div class="grid" id="searchGrid" dir="ltr"></div>
   </div>
 
   <div class="gview" id="gListen">
@@ -465,6 +498,35 @@ function checkQuiz(l,card){
     setTimeout(()=>{ card.classList.remove("miss"); speakLetter(quizAnswer,.6); },900);
   }
 }
+/* ---- recite the whole alphabet ---- */
+let abcPlaying=false, abcIdx=0;
+function stopAbc(){
+  if(!abcPlaying) return;
+  abcPlaying=false; abcIdx=0;
+  try{ speechSynthesis.cancel(); }catch(e){}
+  $("abcAll").textContent="🔤 כל ה-ABC";
+  $("abcAll").classList.remove("playing");
+}
+function playAbc(){
+  if(abcPlaying){ stopAbc(); $("status").textContent=""; return; }
+  quizAnswer=null; abcPlaying=true; abcIdx=0;
+  $("abcAll").textContent="⏹ עצור";
+  $("abcAll").classList.add("playing");
+  const step=()=>{
+    if(!abcPlaying) return;
+    if(abcIdx>=L.length){ stopAbc(); $("status").textContent="כל הכבוד! זה כל ה-ABC 🎉"; tone([523,659,784]); return; }
+    const l=L[abcIdx++];
+    $("status").textContent=l.u+" "+l.u.toLowerCase();
+    /* יש מנועי הקראה שלא מפעילים onend, ולכן יש גם טיימר גיבוי */
+    let moved=false;
+    const next=()=>{ if(moved||!abcPlaying) return; moved=true; setTimeout(step,170); };
+    speakLetter(l,.75,next);
+    setTimeout(next,1600);
+  };
+  step();
+}
+$("abcAll").onclick=playAbc;
+
 $("next").onclick=()=>go(g+1);
 $("prev").onclick=()=>go(g-1);
 document.addEventListener("keydown",e=>{
@@ -539,6 +601,7 @@ ink.addEventListener("pointermove",e=>{
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>ink.addEventListener(ev,()=>drawing=false));
 
 function openPad(l,c){
+  stopAbc();
   padLetter=l; padCase=(c==="low")?"low":"up";
   const isUp=padCase==="up";
   $("caseUp").setAttribute("aria-pressed",String(isUp));
@@ -669,10 +732,10 @@ $("check").onclick=()=>{
 /* ---- games with scoring ---- */
 (function(){
   const sheet=$("games");
-  const views={menu:$("gmenu"),listen:$("gListen"),pairs:$("gPairs"),end:$("gEnd")};
+  const views={menu:$("gmenu"),listen:$("gListen"),pairs:$("gPairs"),search:$("gSearch"),end:$("gEnd")};
   const BKEY="abc-best";
-  const QN=10, PN=6;
-  let best={listen:0,pairs:0}, mode=null, score=0;
+  const QN=10, PN=6, GRID=8, SW=5;
+  let best={listen:0,pairs:0,search:0}, mode=null, score=0, roundMax=0;
 
   async function loadBest(){
     try{ const r=await window.storage.get(BKEY); if(r&&r.value) best=Object.assign(best,JSON.parse(r.value)); }
@@ -683,7 +746,11 @@ $("check").onclick=()=>{
     try{ await window.storage.set(BKEY,JSON.stringify(best)); }
     catch(e){ try{ localStorage.setItem(BKEY,JSON.stringify(best)); }catch(e2){} }
   }
-  function paintBest(){ $("bestListen").textContent=best.listen; $("bestPairs").textContent=best.pairs; }
+  function paintBest(){
+    $("bestListen").textContent=best.listen;
+    $("bestPairs").textContent=best.pairs;
+    $("bestSearch").textContent=best.search;
+  }
 
   const shuffle=a=>{ a=a.slice();
     for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; }
@@ -693,17 +760,21 @@ $("check").onclick=()=>{
   /* המשחקים מכסים את כל 26 האותיות. כל משחק שולף מחפיסה מעורבבת
      ולא באקראי, כך שסבבים רצופים ממשיכים לאותיות חדשות ולא חוזרים
      על אותן אותיות עד שכל האלפבית נגמר. */
-  const decks={listen:[],pairs:[]};
-  function draw(key,n){
+  /* מילים לתפזורת: רק מילים באותיות בלבד ובאורך שנוח לילד למצוא */
+  const WORDS=L.map(x=>x.w).filter(w=>/^[A-Za-z]{3,6}$/.test(w));
+  const decks={listen:[],pairs:[],words:[]};
+  function draw(key,n,src){
+    const pool=src||L;
     const out=[];
     while(out.length<n){
       if(!decks[key].length){
-        decks[key]=shuffle(L);
+        decks[key]=shuffle(pool);
         /* 26 לא מתחלק בגודל הסבב, ולכן סבב יכול להתחיל בסוף מחלק
            אחד ולהמשיך לתחילת הבא. בלי זה אותה אות עלולה להישלף
            פעמיים באותו סבב ולהופיע כשני אריחים זהים. */
-        const used=new Set(out.map(x=>x.u));
-        if(used.size) decks[key].sort((a,b)=>(used.has(a.u)?1:0)-(used.has(b.u)?1:0));
+        const id=x=>(x&&x.u)||x;
+        const used=new Set(out.map(id));
+        if(used.size) decks[key].sort((a,b)=>(used.has(id(a))?1:0)-(used.has(id(b))?1:0));
       }
       out.push(decks[key].shift());
     }
@@ -718,6 +789,7 @@ $("check").onclick=()=>{
   function setScore(n){ score=Math.max(0,n); $("scoreNow").textContent=score; }
 
   function openMenu(){
+    stopAbc();
     $("grange").textContent="כל 26 האותיות: A–Z";
     hush(); show("menu"); sheet.classList.add("on");
   }
@@ -726,7 +798,7 @@ $("check").onclick=()=>{
   /* ---- game 1: listen and choose ---- */
   let qi=0,target=null,tries=0,roundQs=[];
   function startListen(){
-    mode="listen"; setScore(0); qi=0; roundQs=draw("listen",QN);
+    mode="listen"; setScore(0); qi=0; roundQs=draw("listen",QN); roundMax=QN*10;
     show("listen"); nextQ();
   }
   function nextQ(){
@@ -764,7 +836,7 @@ $("check").onclick=()=>{
   function startPairs(){
     mode="pairs"; setScore(0); matched=0; misses=0; firstPick=null; show("pairs");
     const p=draw("pairs",PN);
-    totalPairs=p.length;
+    totalPairs=p.length; roundMax=totalPairs*10;
     $("pairsQ").textContent="מתאימים "+totalPairs+" זוגות · עוד "+deckLeft("pairs")+" אותיות עד סוף האלפבית";
     const grid=$("pairsGrid"); grid.innerHTML="";
     const tiles=shuffle(p.map(l=>({l,c:"up"})).concat(p.map(l=>({l,c:"low"}))));
@@ -795,11 +867,124 @@ $("check").onclick=()=>{
     }
   }
 
+  /* ---- game 3: word search ---- */
+  let cells=[],placed=[],foundCount=0,searchMisses=0,dragFrom=null,dragCells=[];
+  const AZ="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  function buildGrid(words){
+    /* null = משבצת ריקה שתתמלא באות אקראית בסוף */
+    const g=[]; for(let i=0;i<GRID*GRID;i++) g.push(null);
+    const put=[];
+    for(const w of words){
+      const W=w.toUpperCase();
+      let ok=false;
+      for(let attempt=0;attempt<300&&!ok;attempt++){
+        const horiz=Math.random()<.5;
+        const maxStart=GRID-W.length;
+        if(maxStart<0) break;
+        const r=Math.floor(Math.random()*(horiz?GRID:maxStart+1));
+        const c=Math.floor(Math.random()*(horiz?maxStart+1:GRID));
+        let fits=true;
+        for(let i=0;i<W.length;i++){
+          const rr=horiz?r:r+i, cc=horiz?c+i:c, cur=g[rr*GRID+cc];
+          if(cur!==null&&cur!==W[i]){ fits=false; break; }
+        }
+        if(!fits) continue;
+        const idx=[];
+        for(let i=0;i<W.length;i++){
+          const rr=horiz?r:r+i, cc=horiz?c+i:c;
+          g[rr*GRID+cc]=W[i]; idx.push(rr*GRID+cc);
+        }
+        put.push({word:w,letters:W,idx}); ok=true;
+      }
+    }
+    for(let i=0;i<g.length;i++) if(g[i]===null) g[i]=AZ[Math.floor(Math.random()*26)];
+    return {grid:g,placed:put};
+  }
+
+  function paintWords(){
+    const box=$("searchWords"); box.innerHTML="";
+    placed.forEach(p=>{
+      const s=document.createElement("span");
+      s.className="wchip"+(p.done?" found":"");
+      s.innerHTML='<span class="en">'+p.word+'</span>';
+      box.appendChild(s);
+    });
+  }
+
+  function startSearch(){
+    mode="search"; setScore(0); foundCount=0; searchMisses=0; dragFrom=null; dragCells=[];
+    show("search");
+    const words=draw("words",SW,WORDS);
+    const built=buildGrid(words);
+    placed=built.placed; roundMax=placed.length*10;
+    $("searchQ").textContent="מצאו "+placed.length+" מילים · מעבירים את האצבע מהאות הראשונה לאחרונה";
+    const grid=$("searchGrid");
+    grid.style.gridTemplateColumns="repeat("+GRID+",1fr)";
+    grid.innerHTML=""; cells=[];
+    built.grid.forEach((ch,i)=>{
+      const d=document.createElement("div");
+      d.className="cell"; d.textContent=ch; d.dataset.i=i;
+      grid.appendChild(d); cells.push(d);
+    });
+    paintWords();
+  }
+
+  function cellAt(x,y){
+    const el=document.elementFromPoint(x,y);
+    return el&&el.classList&&el.classList.contains("cell")?el:null;
+  }
+  function lineBetween(a,b){
+    const r1=Math.floor(a/GRID), c1=a%GRID, r2=Math.floor(b/GRID), c2=b%GRID;
+    const out=[];
+    if(r1===r2){ const s=Math.min(c1,c2), e=Math.max(c1,c2); for(let c=s;c<=e;c++) out.push(r1*GRID+c); }
+    else if(c1===c2){ const s=Math.min(r1,r2), e=Math.max(r1,r2); for(let r=s;r<=e;r++) out.push(r*GRID+c1); }
+    return out; /* ריק אם לא באותה שורה או עמודה */
+  }
+  function paintSel(idx){
+    cells.forEach(c=>c.classList.remove("sel"));
+    idx.forEach(i=>cells[i].classList.add("sel"));
+  }
+
+  $("searchGrid").addEventListener("pointerdown",e=>{
+    const el=cellAt(e.clientX,e.clientY); if(!el) return;
+    e.preventDefault(); dragFrom=+el.dataset.i; dragCells=[dragFrom]; paintSel(dragCells);
+  });
+  $("searchGrid").addEventListener("pointermove",e=>{
+    if(dragFrom===null) return;
+    const el=cellAt(e.clientX,e.clientY); if(!el) return;
+    const line=lineBetween(dragFrom,+el.dataset.i);
+    if(line.length){ dragCells=line; paintSel(dragCells); }
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>
+    $("searchGrid").addEventListener(ev,()=>{
+      if(dragFrom===null) return;
+      const picked=dragCells.slice();
+      dragFrom=null; dragCells=[];
+      cells.forEach(c=>c.classList.remove("sel"));
+      if(picked.length<3) return;
+      const text=picked.map(i=>cells[i].textContent).join("");
+      const rev=text.split("").reverse().join("");
+      const hit=placed.find(p=>!p.done&&(p.letters===text||p.letters===rev));
+      if(hit){
+        hit.done=true; foundCount++;
+        hit.idx.forEach(i=>cells[i].classList.add("found"));
+        paintWords(); tone([660,880]); buzz(40);
+        speak(hit.word,.8);
+        setScore(foundCount*10-searchMisses*2);
+        if(foundCount===placed.length) setTimeout(endGame,900);
+      }else{
+        searchMisses++; setScore(foundCount*10-searchMisses*2);
+        tone([300,220]); buzz([25,60,25]);
+        picked.forEach(i=>cells[i].classList.add("bad"));
+        setTimeout(()=>picked.forEach(i=>cells[i].classList.remove("bad")),450);
+      }
+    }));
+
   /* ---- end of round ---- */
   function endGame(){
     hush();
-    const max = mode==="listen" ? QN*10 : totalPairs*10;
-    const pct = max ? Math.round(score/max*100) : 0;
+    const pct = roundMax ? Math.round(score/roundMax*100) : 0;
     const st = pct>=90?3:pct>=70?2:pct>=40?1:0;
     $("endStars").textContent = st ? "⭐".repeat(st) : "🙂";
     $("endScore").textContent = score;
@@ -817,8 +1002,11 @@ $("check").onclick=()=>{
   $("gamesClose").onclick=closeGames;
   $("playListen").onclick=startListen;
   $("playPairs").onclick=startPairs;
+  $("playSearch").onclick=startSearch;
   $("speakerBtn").onclick=()=>{ if(target) speakLetter(target,.6); };
-  $("playAgain").onclick=()=>{ mode==="listen"?startListen():startPairs(); };
+  $("playAgain").onclick=()=>{
+    mode==="listen"?startListen():mode==="pairs"?startPairs():startSearch();
+  };
   $("backMenu").onclick=openMenu;
   loadBest();
 })();
