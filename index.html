@@ -235,7 +235,7 @@
 
   <div class="toprow">
     <button class="btn games-open" id="gamesOpen" type="button">🎮 משחקים וניקוד</button>
-    <button class="btn abc-btn" id="abcAll" type="button">🔤 כל ה-ABC</button>
+    <button class="btn abc-btn" id="abcAll" type="button">🎵 שיר ה-ABC</button>
   </div>
 
   <main class="board" id="board"></main>
@@ -402,10 +402,14 @@ function speakLetter(l,rate,onend){
   speak(SAY_AS[l.u]||ch,rate||.7,onend);
 }
 let ac;
+function audio(){
+  ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  if(ac.state==="suspended") ac.resume();
+  return ac;
+}
 function tone(fs){
   try{
-    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
-    if(ac.state==="suspended") ac.resume();
+    audio();
     fs.forEach((f,i)=>{
       const o=ac.createOscillator(),gn=ac.createGain();
       o.type="triangle";o.frequency.value=f;o.connect(gn);gn.connect(ac.destination);
@@ -498,32 +502,83 @@ function checkQuiz(l,card){
     setTimeout(()=>{ card.classList.remove("miss"); speakLetter(quizAnswer,.6); },900);
   }
 }
-/* ---- recite the whole alphabet ---- */
-let abcPlaying=false, abcIdx=0;
+/* ---- שיר ה-ABC ----
+   המנגינה היא המנגינה המקורית של השיר (אותה מנגינה של Twinkle Twinkle,
+   מ-1761) והיא נחלת הכלל, ולכן היא מנוגנת כאן בסינתזה ולא כהקלטה.
+   האותיות נאמרות בקצב ובחלוקה של השיר, כולל ה-LMNOP המהיר.
+   כל שורה: [תו, מספר פעימות, מה להשמיע, מה להציג] */
+const NOTE={C:261.63,D:293.66,E:329.63,F:349.23,G:392.00,A:440.00};
+const BEAT=.55;
+const SONG=[
+  ["C",1,"a","A"],["C",1,"b","B"],["G",1,"c","C"],["G",1,"d","D"],["A",1,"e","E"],["A",1,"f","F"],["G",2,"g","G"],
+  ["F",1,"h","H"],["F",1,"i","I"],["E",1,"j","J"],["E",1,"k","K"],
+  /* L M N O נאמרות כמשפט אחד מהיר – כך זה נשמע בשיר, ובלי שהדיבור ייחתך */
+  ["D",.5,"l m n o p","L M N O P"],["D",.5],["D",.5],["D",.5],["C",2],
+  ["G",1,"q","Q"],["G",1,"r","R"],["F",2,"s","S"],
+  ["E",1,"t","T"],["E",1,"u","U"],["D",2,"v","V"],
+  ["G",1,"w","W"],["G",1,"x","X"],["F",1,"y","Y"],["E",1,"and","and"],["D",2,"z","Z"],
+  ["C",1,"now I know my A B C","Now I know my ABC"],["C",1],["G",1],["G",1],["A",1],["A",1],["G",2],
+  ["F",1,"next time won't you sing with me","Next time won't you sing with me"],["F",1],["E",1],["E",1],["D",1],["D",1],["C",2]
+];
+
+let abcPlaying=false, songTimers=[], songGain=null;
 function stopAbc(){
   if(!abcPlaying) return;
-  abcPlaying=false; abcIdx=0;
+  abcPlaying=false;
+  songTimers.forEach(clearTimeout); songTimers=[];
   try{ speechSynthesis.cancel(); }catch(e){}
-  $("abcAll").textContent="🔤 כל ה-ABC";
+  if(songGain){ try{ songGain.gain.value=0; songGain.disconnect(); }catch(e){} songGain=null; }
+  $("abcAll").textContent="🎵 שיר ה-ABC";
   $("abcAll").classList.remove("playing");
 }
-function playAbc(){
+/* מתזמנים את האותיות מול שעון קיר יחיד, כדי שהדיבור לא יזוז מול המנגינה */
+function songSpeech(offsetMs){
+  let acc=0;
+  SONG.forEach(ev=>{
+    if(ev[2]) songTimers.push(setTimeout(()=>{
+      if(!abcPlaying) return;
+      if(ev[3]) $("status").textContent=ev[3];
+      speak(ev[2],.95);
+    },offsetMs+acc*1000));
+    acc+=ev[1]*BEAT;
+  });
+  songTimers.push(setTimeout(()=>{
+    if(!abcPlaying) return;
+    stopAbc(); $("status").textContent="כל הכבוד! זה כל ה-ABC 🎉";
+  },offsetMs+acc*1000+500));
+}
+async function playAbc(){
   if(abcPlaying){ stopAbc(); $("status").textContent=""; return; }
-  quizAnswer=null; abcPlaying=true; abcIdx=0;
+  quizAnswer=null; abcPlaying=true;
   $("abcAll").textContent="⏹ עצור";
   $("abcAll").classList.add("playing");
-  const step=()=>{
-    if(!abcPlaying) return;
-    if(abcIdx>=L.length){ stopAbc(); $("status").textContent="כל הכבוד! זה כל ה-ABC 🎉"; tone([523,659,784]); return; }
-    const l=L[abcIdx++];
-    $("status").textContent=l.u+" "+l.u.toLowerCase();
-    /* יש מנועי הקראה שלא מפעילים onend, ולכן יש גם טיימר גיבוי */
-    let moved=false;
-    const next=()=>{ if(moved||!abcPlaying) return; moved=true; setTimeout(step,170); };
-    speakLetter(l,.75,next);
-    setTimeout(next,1600);
-  };
-  step();
+  let a=null;
+  try{
+    a=audio();
+    /* currentTime של הקשר חדש נשאר 0 עד שהוא באמת מתחיל לרוץ, ואם
+       מתזמנים מולו בשלב הזה הדיבור מקדים את המנגינה */
+    if(a.state!=="running"){ try{ await a.resume(); }catch(e){} }
+  }catch(e){ a=null; }
+  if(!abcPlaying) return;
+  const LEAD=.2;
+  if(a){
+    try{
+      const master=a.createGain(); master.gain.value=.16; master.connect(a.destination);
+      songGain=master;
+      let t=a.currentTime+LEAD;
+      SONG.forEach(ev=>{
+        const dur=ev[1]*BEAT;
+        const o=a.createOscillator(), gn=a.createGain();
+        o.type="triangle"; o.frequency.value=NOTE[ev[0]]; o.connect(gn); gn.connect(master);
+        gn.gain.setValueAtTime(.0001,t);
+        gn.gain.exponentialRampToValueAtTime(1,t+.03);
+        gn.gain.exponentialRampToValueAtTime(.0001,t+dur*.92);
+        o.start(t); o.stop(t+dur);
+        t+=dur;
+      });
+    }catch(e){}
+  }
+  songSpeech(LEAD*1000);
 }
 $("abcAll").onclick=playAbc;
 
