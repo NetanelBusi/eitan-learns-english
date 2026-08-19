@@ -1,4 +1,4 @@
-const CACHE = "abc-v10";
+const CACHE = "abc-v11";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png",
                 "./anka-clm.woff", "./anka-clm.ttf"];
 
