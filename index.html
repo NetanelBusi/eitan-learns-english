@@ -74,7 +74,11 @@
   .btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
   .btn:focus-visible,.dot:focus-visible{outline:4px solid var(--grape);outline-offset:3px}
   .hear{width:100%;min-height:48px;font-size:16px;background:var(--leaf);color:#fff}
-  .write{width:100%;min-height:46px;margin-top:6px;font-size:16px;background:var(--grape);color:#fff}
+  .writes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .write{width:100%;min-height:46px;font-size:14px;padding:0 4px;background:var(--grape);color:#fff}
+  .write .ch{font-family:var(--letterface);font-weight:700;font-size:19px}
+  .write.wdone{background:var(--leaf)}
+  .write.wdone::after{content:" ✓"}
   .word{width:100%;min-height:38px;margin-top:6px;font-size:13px;background:var(--sky)}
   .word .en{font-family:var(--letterface);font-weight:700}
   .letter.speaking{background:#FFF6D9}
@@ -397,16 +401,26 @@ function renderBoard(){
     const m=mastered[l.u]||{};
     const card=document.createElement("div");
     card.className="letter"+(m.up&&m.low?" mastered":(m.up||m.low?" half":""));
-    card.innerHTML='<span class="badge">'+(m.up&&m.low?"✓ יודע":(m.up?"✓ A":"✓ a"))+'</span>'+
+    const badge = m.up&&m.low ? "✓ יודע" : m.up ? "✓ "+l.u : m.low ? "✓ "+l.u.toLowerCase() : "";
+    card.innerHTML='<span class="badge">'+badge+'</span>'+
       '<div class="pair"><span class="up">'+l.u+'</span><span class="low">'+l.u.toLowerCase()+'</span></div>'+
       '<div class="tip">אומרים: <span>'+l.say+'</span></div>';
     const hear=document.createElement("button");
     hear.className="btn hear"; hear.type="button"; hear.innerHTML="🔊 האות";
     hear.onclick=()=>{ quizAnswer?checkQuiz(l,card):(flash(card),speakLetter(l,.65)); };
     card.appendChild(hear);
-    const wr=document.createElement("button");
-    wr.className="btn write"; wr.type="button"; wr.innerHTML="✍️ לכתוב";
-    wr.onclick=()=>openPad(l); card.appendChild(wr);
+    /* שני כפתורי כתיבה – גדולה וקטנה – כדי להגיע לכל אחת מהן ישר מהדף הראשי */
+    const writes=document.createElement("div"); writes.className="writes";
+    [["up",l.u,"הגדולה"],["low",l.u.toLowerCase(),"הקטנה"]].forEach(function(o){
+      const c=o[0], ch=o[1], he=o[2];
+      const wr=document.createElement("button");
+      wr.className="btn write"+(m[c]?" wdone":""); wr.type="button";
+      wr.innerHTML='✍️ <span class="ch">'+ch+'</span>';
+      wr.setAttribute("aria-label","לכתוב את האות "+he+" "+ch);
+      wr.onclick=()=>openPad(l,c);
+      writes.appendChild(wr);
+    });
+    card.appendChild(writes);
     const wd=document.createElement("button");
     wd.className="btn word"; wd.type="button";
     wd.innerHTML=l.e+' <span class="en">'+l.w+'</span>';
@@ -515,9 +529,11 @@ ink.addEventListener("pointerdown",e=>{
 ink.addEventListener("pointermove",e=>{ if(!drawing) return; e.preventDefault(); const p=pos(e); ictx.lineTo(p.x,p.y); ictx.stroke(); });
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>ink.addEventListener(ev,()=>drawing=false));
 
-function openPad(l){
-  padLetter=l; padCase="up";
-  $("caseUp").setAttribute("aria-pressed","true"); $("caseLow").setAttribute("aria-pressed","false");
+function openPad(l,c){
+  padLetter=l; padCase=(c==="low")?"low":"up";
+  const isUp=padCase==="up";
+  $("caseUp").setAttribute("aria-pressed",String(isUp));
+  $("caseLow").setAttribute("aria-pressed",String(!isUp));
   /* התוויות חייבות להשתנות לפי האות שנבחרה, אחרת תמיד מוצג A/a */
   $("caseUp").textContent=l.u+" גדולה";
   $("caseLow").textContent=l.u.toLowerCase()+" קטנה";
