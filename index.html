@@ -16,6 +16,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* Anka CLM – פונט כתב עברי מפרויקט Culmus, GPL. הרישיון המלא בקובץ
+     LICENSE-anka-clm.txt שבריפו. מתארח כאן ולא מ-CDN כדי שיעבוד אופליין. */
+  @font-face{
+    font-family:"Anka";
+    src:url("anka-clm.woff") format("woff"),url("anka-clm.ttf") format("truetype");
+    font-weight:700; font-style:normal; font-display:swap;
+  }
   :root{
     --ink:#152647; --sky:#CFE9F5; --sky-deep:#A9D6EA; --card:#FFFFFF;
     --tangerine:#FF7A45; --grape:#6C4BD1; --leaf:#20B278; --sun:#FFC93C;
@@ -23,6 +30,10 @@
     --display:'Baloo 2','Rubik',system-ui,sans-serif;
     --body:'Rubik',system-ui,sans-serif;
     --letterface:'Andika','Trebuchet MS',system-ui,sans-serif;
+    /* שתי הצורות של האות. באנגלית שתיהן אותו פונט (A ו-a),
+       בעברית הראשונה דפוס והשנייה כתב. נקבע מ-JS לפי השפה. */
+    --face-a:'Andika','Trebuchet MS',system-ui,sans-serif;
+    --face-b:'Andika','Trebuchet MS',system-ui,sans-serif;
     --safe-b:env(safe-area-inset-bottom,0px);
     --safe-t:env(safe-area-inset-top,0px);
   }
@@ -63,8 +74,9 @@
   /* line-height חייב להשאיר מקום לזנב היורד של g j p q y,
      אחרת הזנב בורח מהקופסה והתווית "אומרים" נצבעת עליו */
   .pair{display:flex;align-items:baseline;justify-content:center;gap:8px;line-height:1}
-  .up{font-family:var(--letterface);font-weight:700;font-size:clamp(44px,13vw,72px);line-height:1.05}
-  .low{font-family:var(--letterface);font-weight:400;font-size:clamp(32px,9.5vw,52px);color:var(--tangerine);line-height:1.4}
+  .up{font-family:var(--face-a);font-weight:700;font-size:clamp(44px,13vw,72px);line-height:1.05}
+  .low{font-family:var(--face-b);font-weight:400;font-size:clamp(32px,9.5vw,52px);color:var(--tangerine);line-height:1.4}
+  html[data-lang="he"] .low{font-weight:700}
   .tip{font-family:var(--display);font-size:14px;margin:6px 0 8px}
   .tip span{background:var(--sun);border:2px solid var(--ink);border-radius:7px;padding:0 8px}
 
@@ -139,6 +151,24 @@
   .help-box ol{margin:0 0 14px;padding-inline-start:22px;font-size:15px;line-height:1.75}
   .help-box .btn{width:100%;min-height:48px;font-size:16px;background:var(--grape);color:#fff}
 
+  /* ---- language chooser ---- */
+  .pick{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;padding:20px;background:var(--sky);
+    background-image:radial-gradient(var(--sky-deep) 2px,transparent 2px);background-size:24px 24px}
+  .pick.on{display:flex}
+  .pick h1{font-family:var(--display);font-size:24px;margin:0 0 4px;text-align:center}
+  .pick p{font-family:var(--body);font-size:14px;margin:0 0 8px;text-align:center;max-width:320px}
+  .picks{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:420px}
+  .pickbtn{padding:18px 10px;cursor:pointer;font-family:var(--display);color:var(--ink);
+    background:var(--card);border:4px solid var(--ink);border-radius:20px;box-shadow:var(--sh);
+    transition:transform .07s ease,box-shadow .07s ease}
+  .pickbtn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}
+  .pickbtn .big{display:block;font-size:40px;font-weight:700;line-height:1.1;margin-bottom:6px}
+  .pickbtn .sub{display:block;font-size:15px}
+  .pickbtn.en .big{font-family:'Andika','Trebuchet MS',system-ui,sans-serif}
+  .pickbtn.he .big{font-family:'Rubik',system-ui,sans-serif}
+  .langbtn{width:38px;min-height:38px;padding:0;font-size:13px;font-weight:700;background:var(--card)}
+
   /* ---- games ---- */
   .toprow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
   .games-open{width:100%;min-height:52px;font-size:15px;padding:0 6px;background:var(--tangerine);color:#fff}
@@ -182,6 +212,7 @@
     color:var(--ink);background:var(--card);border:3px solid var(--ink);border-radius:14px;box-shadow:var(--sh-sm);
     transition:transform .07s ease,box-shadow .07s ease}
   .tile.tlow{background:#FFF4DA}
+  .tile.temoji{font-family:inherit;font-size:clamp(20px,6vw,30px)}
   .tile.sel{background:var(--grape);color:#fff;transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
   .tile.bad{background:#FFD9CC}
   .tile.done{background:var(--leaf);color:#fff;opacity:.5}
@@ -223,8 +254,9 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="logo"><b>Aa</b> Eitan Learns English</div>
+    <div class="logo"><b id="logoMark">Aa</b> <span id="logoText">Eitan Learns English</span></div>
     <div class="steps" id="steps" role="group" aria-label="קבוצות אותיות"></div>
+    <button class="btn langbtn" id="langBtn" type="button" aria-label="להחליף שפת לימוד">אבג</button>
   </header>
 
   <div class="install" id="install">
@@ -272,6 +304,21 @@
   </div>
 </section>
 
+<section class="pick" id="pick" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+  <h1 id="pickTitle">מה לומדים היום?</h1>
+  <p>אפשר להחליף בכל רגע בכפתור שבפינה למעלה.</p>
+  <div class="picks">
+    <button class="pickbtn en" id="pickEn" type="button">
+      <span class="big">ABC</span>
+      <span class="sub">אנגלית</span>
+    </button>
+    <button class="pickbtn he" id="pickHe" type="button">
+      <span class="big">אבג</span>
+      <span class="sub">עברית</span>
+    </button>
+  </div>
+</section>
+
 <section class="games" id="games" role="dialog" aria-modal="true" aria-labelledby="gamesTitle">
   <div class="games-top">
     <h2 id="gamesTitle">משחקים</h2>
@@ -289,8 +336,8 @@
     </button>
     <button class="gcard" id="playPairs" type="button">
       <span class="gicon">🔤</span>
-      <span class="gname">גדולה וקטנה</span>
-      <span class="gdesc">מתאימים כל אות גדולה לאות הקטנה שלה</span>
+      <span class="gname" id="pairsName">גדולה וקטנה</span>
+      <span class="gdesc" id="pairsDesc">מתאימים כל אות גדולה לאות הקטנה שלה</span>
       <span class="gbest">🏆 שיא: <b id="bestPairs">0</b></span>
     </button>
     <button class="gcard" id="playSearch" type="button">
@@ -339,7 +386,7 @@
 </section>
 
 <script>
-const L=[
+const EN=[
   {u:"A",say:"איי",w:"Apple",he:"תפוח",e:"🍎"},{u:"B",say:"בּי",w:"Ball",he:"כדור",e:"⚽"},
   {u:"C",say:"סי",w:"Cat",he:"חתול",e:"🐱"},{u:"D",say:"די",w:"Dog",he:"כלב",e:"🐶"},
   {u:"E",say:"אי",w:"Egg",he:"ביצה",e:"🥚"},{u:"F",say:"אֶף",w:"Fish",he:"דג",e:"🐟"},
@@ -354,32 +401,108 @@ const L=[
   {u:"W",say:"דאבּל-יוּ",w:"Watch",he:"שעון",e:"⌚"},{u:"X",say:"אֶקס",w:"Fox",he:"שועל",e:"🦊"},
   {u:"Y",say:"וואי",w:"Yo-yo",he:"יו-יו",e:"🪀"},{u:"Z",say:"זי",w:"Zebra",he:"זברה",e:"🦓"}
 ];
+/* u = האות, spk = מה להקריא (שם האות), say = איך אומרים לתצוגה,
+   w = מילה לדוגמה, e = אימוג'י */
+const HE=[
+  {u:"א",spk:"אלף",say:"אָלֶף",w:"אַרְיֵה",e:"🦁"},   {u:"ב",spk:"בית",say:"בֵּית",w:"בַּיִת",e:"🏠"},
+  {u:"ג",spk:"גימל",say:"גִּימֶל",w:"גְּלִידָה",e:"🍦"},{u:"ד",spk:"דלת",say:"דָּלֶת",w:"דָּג",e:"🐟"},
+  {u:"ה",spk:"הי",say:"הֵא",w:"הַר",e:"⛰️"},        {u:"ו",spk:"וו",say:"וָו",w:"וֶרֶד",e:"🌹"},
+  {u:"ז",spk:"זין",say:"זַיִן",w:"זֶבְּרָה",e:"🦓"},   {u:"ח",spk:"חית",say:"חֵית",w:"חָתוּל",e:"🐱"},
+  {u:"ט",spk:"טית",say:"טֵית",w:"טְרַקְטוֹר",e:"🚜"}, {u:"י",spk:"יוד",say:"יוֹד",w:"יָד",e:"✋"},
+  {u:"כ",spk:"כף",say:"כַּף",w:"כֶּלֶב",e:"🐶"},      {u:"ל",spk:"למד",say:"לָמֶד",w:"לִימוֹן",e:"🍋"},
+  {u:"מ",spk:"מם",say:"מֵם",w:"מַיִם",e:"💧"},       {u:"נ",spk:"נון",say:"נוּן",w:"נַעַל",e:"👟"},
+  {u:"ס",spk:"סמך",say:"סָמֶךְ",w:"סֵפֶר",e:"📖"},    {u:"ע",spk:"עין",say:"עַיִן",w:"עֵץ",e:"🌳"},
+  {u:"פ",spk:"פה",say:"פֵּא",w:"פִּיצָה",e:"🍕"},     {u:"צ",spk:"צדי",say:"צָדִי",w:"צִיפּוֹר",e:"🐦"},
+  {u:"ק",spk:"קוף",say:"קוֹף",w:"קוֹף",e:"🐵"},       {u:"ר",spk:"ריש",say:"רֵישׁ",w:"רַכֶּבֶת",e:"🚆"},
+  {u:"ש",spk:"שין",say:"שִׁין",w:"שֶׁמֶשׁ",e:"☀️"},   {u:"ת",spk:"תו",say:"תָּו",w:"תַּפּוּחַ",e:"🍎"}
+];
+
+const FACE_EN="'Andika','Trebuchet MS',system-ui,sans-serif";
+const FACE_HE="'Rubik',system-ui,sans-serif";
+const FACE_HE_SCRIPT="'Anka','Rubik',system-ui,sans-serif";
+/* מסירים ניקוד כדי לקבל מילה באותיות בלבד ללוח התפזורת */
+const bare=s=>s.replace(/[֑-ׇ]/g,"");
+/* אותיות סופיות מבלבלות בתפזורת, ולכן מילים שמכילות אותן יוצאות מהמאגר */
+const heWords=HE.map(x=>bare(x.w)).filter(w=>/^[א-ת]{3,5}$/.test(w)&&!/[ךםןףץ]/.test(w));
+
+const PACKS={
+  en:{
+    id:"en", letters:EN, dir:"ltr", speech:"en-US",
+    title:"Eitan Learns English", mark:"Aa", other:"אבג",
+    songName:"🎵 שיר ה-ABC", allName:"🔊 כל הארבע", rangeName:"כל 26 האותיות: A–Z",
+    face:FACE_EN,
+    forms:[{id:"up",  he:"גדולה", face:FACE_EN, ch:l=>l.u},
+           {id:"low", he:"קטנה",  face:FACE_EN, ch:l=>l.u.toLowerCase()}],
+    pairMode:"case", pairsName:"גדולה וקטנה", pairsDesc:"מתאימים כל אות גדולה לאות הקטנה שלה",
+    words:EN.map(x=>x.w).filter(w=>/^[A-Za-z]{3,6}$/.test(w)),
+    fill:"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    song:[
+      ["C",1,"a","A"],["C",1,"b","B"],["G",1,"c","C"],["G",1,"d","D"],["A",1,"e","E"],["A",1,"f","F"],["G",2,"g","G"],
+      ["F",1,"h","H"],["F",1,"i","I"],["E",1,"j","J"],["E",1,"k","K"],
+      ["D",.5,"l m n o p","L M N O P"],["D",.5],["D",.5],["D",.5],["C",2],
+      ["G",1,"q","Q"],["G",1,"r","R"],["F",2,"s","S"],
+      ["E",1,"t","T"],["E",1,"u","U"],["D",2,"v","V"],
+      ["G",1,"w","W"],["G",1,"x","X"],["F",1,"y","Y"],["E",1,"and","and"],["D",2,"z","Z"],
+      ["C",1,"now I know my A B C","Now I know my ABC"],["C",1],["G",1],["G",1],["A",1],["A",1],["G",2],
+      ["F",1,"next time won't you sing with me","Next time won't you sing with me"],["F",1],["E",1],["E",1],["D",1],["D",1],["C",2]
+    ],
+    done:"כל הכבוד! זה כל ה-ABC 🎉"
+  },
+  he:{
+    id:"he", letters:HE, dir:"rtl", speech:"he-IL",
+    title:"איתן לומד עברית", mark:"אa", other:"ABC",
+    songName:"🎵 שיר האלפבית", allName:"🔊 כל הארבע", rangeName:"כל 22 האותיות: א–ת",
+    face:FACE_HE,
+    forms:[{id:"print",  he:"דפוס", face:FACE_HE,        ch:l=>l.u},
+           {id:"script", he:"כתב",  face:FACE_HE_SCRIPT, ch:l=>l.u}],
+    pairMode:"picture", pairsName:"אות ותמונה", pairsDesc:"מתאימים כל אות לתמונה שמתחילה באות הזאת",
+    words:heWords,
+    fill:"אבגדהוזחטיכלמנסעפצקרשת",
+    song:[
+      ["C",1,"אלף","א"],["C",1,"בית","ב"],["G",1,"גימל","ג"],["G",1,"דלת","ד"],["A",1,"הי","ה"],["A",1,"וו","ו"],["G",2,"זין","ז"],
+      ["F",1,"חית","ח"],["F",1,"טית","ט"],["E",1,"יוד","י"],["E",1,"כף","כ"],["D",1,"למד","ל"],["D",1,"מם","מ"],["C",2,"נון","נ"],
+      ["G",1,"סמך","ס"],["G",1,"עין","ע"],["F",2,"פה","פ"],["E",1,"צדי","צ"],["E",1,"קוף","ק"],["D",2,"ריש","ר"],
+      ["G",1,"שין","ש"],["G",1,"תו","ת"],["F",1],["E",1],["D",2],
+      ["C",1,"עכשיו אני יודע את כל האלפבית","עכשיו אני יודע את כל האלפבית"],["C",1],["G",1],["G",1],["A",1],["A",1],["G",2],
+      ["F",1,"בואו נשיר את זה שוב יחד","בואו נשיר את זה שוב יחד"],["F",1],["E",1],["E",1],["D",1],["D",1],["C",2]
+    ],
+    done:"כל הכבוד! זה כל האלפבית 🎉"
+  }
+};
+
 /* תיקון נקודתי להגייה של אות מסוימת, אם מנוע ההקראה טועה בה.
    ריק בכוונה – ברירת המחדל היא לתת למנוע את התו עצמו, כי יש לו
    טיפול מובנה בשמות אותיות שעדיף על כל איות פונטי שננחש. */
 const SAY_AS={};
-const groups=[]; for(let i=0;i<L.length;i+=4) groups.push(L.slice(i,i+4));
+const LKEY="abc-lang";
+let PACK=PACKS.en, L=EN, groups=[];
+function buildGroups(){ groups=[]; for(let i=0;i<L.length;i+=4) groups.push(L.slice(i,i+4)); }
 const $=id=>document.getElementById(id);
 let g=0,quizAnswer=null,visited=new Set([0]),mastered={},padLetter=null,padCase="up";
 const buzz=ms=>{ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} };
 
-/* ---- progress ---- */
-const KEY="abc-writing";
+/* ---- progress ----
+   מפתח נפרד לכל שפה. אנגלית נשארת על המפתח המקורי כדי לא לאבד
+   התקדמות שנשמרה לפני שנוספה העברית. */
+const KEY=()=>PACK.id==="en"?"abc-writing":"abc-writing-"+PACK.id;
 async function loadProgress(){
-  try{ const r=await window.storage.get(KEY); if(r&&r.value) mastered=JSON.parse(r.value); }
-  catch(e){ try{ const v=localStorage.getItem(KEY); if(v) mastered=JSON.parse(v); }catch(e2){} }
+  const k=KEY(); mastered={};
+  try{ const r=await window.storage.get(k); if(r&&r.value) mastered=JSON.parse(r.value); }
+  catch(e){ try{ const v=localStorage.getItem(k); if(v) mastered=JSON.parse(v); }catch(e2){} }
   renderBoard();
 }
 async function saveProgress(){
-  try{ await window.storage.set(KEY,JSON.stringify(mastered)); }
-  catch(e){ try{ localStorage.setItem(KEY,JSON.stringify(mastered)); }catch(e2){} }
+  const k=KEY();
+  try{ await window.storage.set(k,JSON.stringify(mastered)); }
+  catch(e){ try{ localStorage.setItem(k,JSON.stringify(mastered)); }catch(e2){} }
 }
 
 /* ---- speech (iOS needs one tap to unlock) ---- */
 let voice=null,unlocked=false;
 function pickVoice(){
-  const v=speechSynthesis.getVoices().filter(x=>x.lang&&x.lang.toLowerCase().startsWith("en"));
-  voice=v.find(x=>/samantha|zira|karen|google us|female/i.test(x.name))||v[0]||null;
+  const want=PACK.speech.slice(0,2).toLowerCase();
+  const v=speechSynthesis.getVoices().filter(x=>x.lang&&x.lang.toLowerCase().startsWith(want));
+  voice=v.find(x=>/samantha|zira|karen|carmit|google/i.test(x.name))||v[0]||null;
 }
 if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
 document.addEventListener("pointerdown",()=>{
@@ -390,7 +513,7 @@ function speak(t,rate,onend){
   if(!("speechSynthesis" in window)){ if(onend) onend(); return; }
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t);
-  u.lang="en-US"; u.rate=rate||.7; u.pitch=1.05; if(voice) u.voice=voice; if(onend) u.onend=onend;
+  u.lang=PACK.speech; u.rate=rate||.7; u.pitch=1.05; if(voice) u.voice=voice; if(onend) u.onend=onend;
   speechSynthesis.speak(u);
 }
 /* הקראת שם האות. מעבירים למנוע את התו בקטן ולא בגדול: מנועים
@@ -398,8 +521,8 @@ function speak(t,rate,onend){
    הודעת רישיות בכלל – וההגייה היא שם האות האמיתי מהמנוע עצמו. */
 function speakLetter(l,rate,onend){
   if(!l) return;
-  const ch=String(l.u||"").toLowerCase();
-  speak(SAY_AS[l.u]||ch,rate||.7,onend);
+  /* בעברית מקריאים את שם האות (אלף), באנגלית את התו עצמו בקטן */
+  speak(SAY_AS[l.u]||l.spk||String(l.u||"").toLowerCase(),rate||.7,onend);
 }
 let ac;
 function audio(){
@@ -437,24 +560,26 @@ function renderBoard(){
   groups[g].forEach(l=>{
     const m=mastered[l.u]||{};
     const card=document.createElement("div");
-    card.className="letter"+(m.up&&m.low?" mastered":(m.up||m.low?" half":""));
-    const badge = m.up&&m.low ? "✓ יודע" : m.up ? "✓ "+l.u : m.low ? "✓ "+l.u.toLowerCase() : "";
+    const f0=PACK.forms[0].id, f1=PACK.forms[1].id;
+    card.className="letter"+(m[f0]&&m[f1]?" mastered":(m[f0]||m[f1]?" half":""));
+    const F=PACK.forms, fa=F[0], fb=F[1];
+    const da=m[fa.id], db=m[fb.id];
+    const badge = da&&db ? "✓ יודע" : da ? "✓ "+fa.he : db ? "✓ "+fb.he : "";
     card.innerHTML='<span class="badge">'+badge+'</span>'+
-      '<div class="pair"><span class="up">'+l.u+'</span><span class="low">'+l.u.toLowerCase()+'</span></div>'+
+      '<div class="pair"><span class="up">'+fa.ch(l)+'</span><span class="low">'+fb.ch(l)+'</span></div>'+
       '<div class="tip">אומרים: <span>'+l.say+'</span></div>';
     const hear=document.createElement("button");
     hear.className="btn hear"; hear.type="button"; hear.innerHTML="🔊 האות";
     hear.onclick=()=>{ quizAnswer?checkQuiz(l,card):(flash(card),speakLetter(l,.65)); };
     card.appendChild(hear);
-    /* שני כפתורי כתיבה – גדולה וקטנה – כדי להגיע לכל אחת מהן ישר מהדף הראשי */
+    /* כפתור כתיבה לכל צורה – באנגלית גדולה/קטנה, בעברית דפוס/כתב */
     const writes=document.createElement("div"); writes.className="writes";
-    [["up",l.u,"הגדולה"],["low",l.u.toLowerCase(),"הקטנה"]].forEach(function(o){
-      const c=o[0], ch=o[1], he=o[2];
+    PACK.forms.forEach(function(f){
       const wr=document.createElement("button");
-      wr.className="btn write"+(m[c]?" wdone":""); wr.type="button";
-      wr.innerHTML='✍️ <span class="ch">'+ch+'</span>';
-      wr.setAttribute("aria-label","לכתוב את האות "+he+" "+ch);
-      wr.onclick=()=>openPad(l,c);
+      wr.className="btn write"+(m[f.id]?" wdone":""); wr.type="button";
+      wr.innerHTML='✍️ <span class="ch" style="font-family:'+f.face+'">'+f.ch(l)+'</span>';
+      wr.setAttribute("aria-label","לכתוב את האות "+f.he+" "+f.ch(l));
+      wr.onclick=()=>openPad(l,f.id);
       writes.appendChild(wr);
     });
     card.appendChild(writes);
@@ -509,17 +634,6 @@ function checkQuiz(l,card){
    כל שורה: [תו, מספר פעימות, מה להשמיע, מה להציג] */
 const NOTE={C:261.63,D:293.66,E:329.63,F:349.23,G:392.00,A:440.00};
 const BEAT=.55;
-const SONG=[
-  ["C",1,"a","A"],["C",1,"b","B"],["G",1,"c","C"],["G",1,"d","D"],["A",1,"e","E"],["A",1,"f","F"],["G",2,"g","G"],
-  ["F",1,"h","H"],["F",1,"i","I"],["E",1,"j","J"],["E",1,"k","K"],
-  /* L M N O נאמרות כמשפט אחד מהיר – כך זה נשמע בשיר, ובלי שהדיבור ייחתך */
-  ["D",.5,"l m n o p","L M N O P"],["D",.5],["D",.5],["D",.5],["C",2],
-  ["G",1,"q","Q"],["G",1,"r","R"],["F",2,"s","S"],
-  ["E",1,"t","T"],["E",1,"u","U"],["D",2,"v","V"],
-  ["G",1,"w","W"],["G",1,"x","X"],["F",1,"y","Y"],["E",1,"and","and"],["D",2,"z","Z"],
-  ["C",1,"now I know my A B C","Now I know my ABC"],["C",1],["G",1],["G",1],["A",1],["A",1],["G",2],
-  ["F",1,"next time won't you sing with me","Next time won't you sing with me"],["F",1],["E",1],["E",1],["D",1],["D",1],["C",2]
-];
 
 let abcPlaying=false, songTimers=[], songGain=null;
 function stopAbc(){
@@ -528,13 +642,13 @@ function stopAbc(){
   songTimers.forEach(clearTimeout); songTimers=[];
   try{ speechSynthesis.cancel(); }catch(e){}
   if(songGain){ try{ songGain.gain.value=0; songGain.disconnect(); }catch(e){} songGain=null; }
-  $("abcAll").textContent="🎵 שיר ה-ABC";
+  $("abcAll").textContent=PACK.songName;
   $("abcAll").classList.remove("playing");
 }
 /* מתזמנים את האותיות מול שעון קיר יחיד, כדי שהדיבור לא יזוז מול המנגינה */
 function songSpeech(offsetMs){
   let acc=0;
-  SONG.forEach(ev=>{
+  PACK.song.forEach(ev=>{
     if(ev[2]) songTimers.push(setTimeout(()=>{
       if(!abcPlaying) return;
       if(ev[3]) $("status").textContent=ev[3];
@@ -544,7 +658,7 @@ function songSpeech(offsetMs){
   });
   songTimers.push(setTimeout(()=>{
     if(!abcPlaying) return;
-    stopAbc(); $("status").textContent="כל הכבוד! זה כל ה-ABC 🎉";
+    stopAbc(); $("status").textContent=PACK.done;
   },offsetMs+acc*1000+500));
 }
 async function playAbc(){
@@ -566,7 +680,7 @@ async function playAbc(){
       const master=a.createGain(); master.gain.value=.16; master.connect(a.destination);
       songGain=master;
       let t=a.currentTime+LEAD;
-      SONG.forEach(ev=>{
+      PACK.song.forEach(ev=>{
         const dur=ev[1]*BEAT;
         const o=a.createOscillator(), gn=a.createGain();
         o.type="triangle"; o.frequency.value=NOTE[ev[0]]; o.connect(gn); gn.connect(master);
@@ -600,7 +714,9 @@ document.addEventListener("touchend",e=>{
 },{passive:true});
 
 /* ---- writing pad ---- */
-const S=360, FONT='700 250px Andika,"Trebuchet MS",system-ui,sans-serif';
+const S=360;
+const curForm=()=>PACK.forms.find(f=>f.id===padCase)||PACK.forms[0];
+const FONTF=()=>'700 250px '+curForm().face;
 const guide=$("guide"), ink=$("ink");
 const gctx=guide.getContext("2d"), ictx=ink.getContext("2d");
 const PEN=17;
@@ -614,10 +730,10 @@ function fitCanvas(c,ctx){
   c.width=Math.round(r.width*dpr); c.height=Math.round(r.height*dpr);
   const k=c.width/S; ctx.setTransform(k,0,0,k,0,0);
 }
-function targetChar(){ return padCase==="up"?padLetter.u:padLetter.u.toLowerCase(); }
+function targetChar(){ return curForm().ch(padLetter); }
 function drawLetterOn(ctx,size,style){
   ctx.save(); ctx.scale(size/S,size/S);
-  ctx.font=FONT; ctx.textAlign="center"; ctx.textBaseline="alphabetic";
+  ctx.font=FONTF(); ctx.textAlign="center"; ctx.textBaseline="alphabetic";
   ctx.fillStyle=style||"#000"; ctx.fillText(targetChar(),S/2,S*0.78);
   ctx.restore();
 }
@@ -657,25 +773,26 @@ ink.addEventListener("pointermove",e=>{
 
 function openPad(l,c){
   stopAbc();
-  padLetter=l; padCase=(c==="low")?"low":"up";
-  const isUp=padCase==="up";
-  $("caseUp").setAttribute("aria-pressed",String(isUp));
-  $("caseLow").setAttribute("aria-pressed",String(!isUp));
+  const F=PACK.forms;
+  padLetter=l; padCase=F.some(f=>f.id===c)?c:F[0].id;
   /* התוויות חייבות להשתנות לפי האות שנבחרה, אחרת תמיד מוצג A/a */
-  $("caseUp").textContent=l.u+" גדולה";
-  $("caseLow").textContent=l.u.toLowerCase()+" קטנה";
-  $("padTitle").textContent="כתיבת האות "+l.u+l.u.toLowerCase();
+  [$("caseUp"),$("caseLow")].forEach((btn,i)=>{
+    const f=F[i];
+    btn.setAttribute("aria-pressed",String(padCase===f.id));
+    btn.innerHTML='<span style="font-family:'+f.face+'">'+f.ch(l)+'</span> '+f.he;
+    btn.onclick=()=>setCase(f.id);
+  });
+  $("padTitle").textContent="כתיבת האות "+F.map(f=>f.ch(l)).join("");
   $("pad").classList.add("on");
   requestAnimationFrame(()=>{ fitCanvas(guide,gctx); fitCanvas(ink,ictx); drawGuide(); clearInk(); });
   speakLetter(l,.65);
 }
 function setCase(c){
   padCase=c;
-  $("caseUp").setAttribute("aria-pressed",c==="up"); $("caseLow").setAttribute("aria-pressed",c==="low");
+  [$("caseUp"),$("caseLow")].forEach((btn,i)=>
+    btn.setAttribute("aria-pressed",String(PACK.forms[i].id===c)));
   drawGuide(); clearInk(); speakLetter(padLetter,.65);
 }
-$("caseUp").onclick=()=>setCase("up");
-$("caseLow").onclick=()=>setCase("low");
 $("clear").onclick=clearInk;
 $("closePad").onclick=()=>{ $("pad").classList.remove("on"); renderBoard(); };
 window.addEventListener("resize",()=>{
@@ -714,10 +831,12 @@ const inter=(a,b)=>{let c=0;for(let i=0;i<a.length;i++) if(a[i]&&b[i])c++; retur
 /* ספי הבדיקה. R_COV קטן מ-R_PREC כי כדי "לכסות" את האות צריך לעבור
    ממש עליה, ואילו לחריגה קטנה מהקו מותר להיות סלחנית יותר. */
 const R_COV=5, R_PREC=4;
-/* MAX_INK נקבע ממדידה: מעבר תקין על כל 26 האותיות בשתי הצורות הגיע
-   ל-0.64 לכל היותר, ומעבר "מושלם" שממלא את האות בדיוק מגיע ל-0.99.
-   מילוי השטח של אות צפופה כמו e מגיע ל-1.43, ולכן הסף באמצע. */
-const MIN_COVER=.80, MIN_CELLS=.85, MIN_PREC=.85, MAX_INK=1.15, MAX_OVERDRAW=3.2;
+/* MAX_INK מנורמל מול "המעטפת" – שטח האות מנופחת ברדיוס העט, כלומר כמה
+   דיו עט יכול לצבוע באופן לגיטימי בלי לצאת מהאות. הנרמול הזה לא תלוי
+   בכתב: נמדד על 26 אותיות אנגלית ו-22 עברית בשתי הצורות, ומעבר אמיתי
+   הגיע ל-0.795 לכל היותר, בעוד קישקוש מתחיל ב-0.958. הסף באמצע.
+   נרמול מול שטח האות עצמה לא עבד: מעבר עברי אמיתי הגיע שם ל-1.7. */
+const MIN_COVER=.80, MIN_CELLS=.85, MIN_PREC=.85, MAX_INK=.87, MAX_OVERDRAW=3.2;
 
 /* חפיפת פיקסלים לבדה ניתנת לרמייה: שני קווים אלכסוניים שמנופחים
    ברדיוס נדיב "נוגעים" בחלק גדול מאות צפופה. לכן בודקים גם לפי תאים –
@@ -742,12 +861,12 @@ function judgeWriting(){
   const user=maskOf(ink), nUser=cnt(user);
   if(nUser<120||strokes===0) return {empty:true};
   const tgt=targetMask(), nTgt=Math.max(1,cnt(tgt));
+  const tgtD=dilate(tgt,R_PREC);
   const coverage=inter(tgt,dilate(user,R_COV))/nTgt;
   const cells=cellCoverage(user,tgt);
-  const precision=inter(user,dilate(tgt,R_PREC))/nUser;
-  /* כמה דיו נצבע ביחס לגודל האות. מעבר נקי בעט דק מגיע ל-0.4-1.0,
-     ומילוי השטח בקישקוש עובר את 1.5. */
-  const inkRatio=nUser/nTgt;
+  const precision=inter(user,tgtD)/nUser;
+  /* כמה דיו נצבע מול המעטפת – השטח שעט יכול לצבוע בלי לצאת מהאות */
+  const inkRatio=nUser/Math.max(1,cnt(tgtD));
   /* מסלול ארוך בהרבה מהשטח שנצבע = חזרות הלוך-חזור על אותו מקום. */
   const areaS=nUser*(S/N)*(S/N);
   const overdraw=travel/Math.max(1,areaS/PEN);
@@ -788,19 +907,28 @@ $("check").onclick=()=>{
 (function(){
   const sheet=$("games");
   const views={menu:$("gmenu"),listen:$("gListen"),pairs:$("gPairs"),search:$("gSearch"),end:$("gEnd")};
-  const BKEY="abc-best";
+  /* שיאים נשמרים בנפרד לכל שפה. אנגלית על המפתח המקורי, כדי לא
+     לאבד שיאים שנשמרו לפני שנוספה העברית. */
+  const BKEY=()=>PACK.id==="en"?"abc-best":"abc-best-"+PACK.id;
   const QN=10, PN=6, GRID=8, SW=5;
   let best={listen:0,pairs:0,search:0}, mode=null, score=0, roundMax=0;
 
   async function loadBest(){
-    try{ const r=await window.storage.get(BKEY); if(r&&r.value) best=Object.assign(best,JSON.parse(r.value)); }
-    catch(e){ try{ const v=localStorage.getItem(BKEY); if(v) best=Object.assign(best,JSON.parse(v)); }catch(e2){} }
+    const k=BKEY(); best={listen:0,pairs:0,search:0};
+    try{ const r=await window.storage.get(k); if(r&&r.value) best=Object.assign(best,JSON.parse(r.value)); }
+    catch(e){ try{ const v=localStorage.getItem(k); if(v) best=Object.assign(best,JSON.parse(v)); }catch(e2){} }
     paintBest();
   }
   async function saveBest(){
-    try{ await window.storage.set(BKEY,JSON.stringify(best)); }
-    catch(e){ try{ localStorage.setItem(BKEY,JSON.stringify(best)); }catch(e2){} }
+    const k=BKEY();
+    try{ await window.storage.set(k,JSON.stringify(best)); }
+    catch(e){ try{ localStorage.setItem(k,JSON.stringify(best)); }catch(e2){} }
   }
+  /* החלפת שפה מאפסת את החפיסות וטוענת את השיאים של השפה החדשה */
+  window.__gamesLangChanged=function(){
+    decks.listen=[]; decks.pairs=[]; decks.words=[];
+    closeGames(); loadBest();
+  };
   function paintBest(){
     $("bestListen").textContent=best.listen;
     $("bestPairs").textContent=best.pairs;
@@ -815,8 +943,6 @@ $("check").onclick=()=>{
   /* המשחקים מכסים את כל 26 האותיות. כל משחק שולף מחפיסה מעורבבת
      ולא באקראי, כך שסבבים רצופים ממשיכים לאותיות חדשות ולא חוזרים
      על אותן אותיות עד שכל האלפבית נגמר. */
-  /* מילים לתפזורת: רק מילים באותיות בלבד ובאורך שנוח לילד למצוא */
-  const WORDS=L.map(x=>x.w).filter(w=>/^[A-Za-z]{3,6}$/.test(w));
   const decks={listen:[],pairs:[],words:[]};
   function draw(key,n,src){
     const pool=src||L;
@@ -845,7 +971,7 @@ $("check").onclick=()=>{
 
   function openMenu(){
     stopAbc();
-    $("grange").textContent="כל 26 האותיות: A–Z";
+    $("grange").textContent=PACK.rangeName;
     hush(); show("menu"); sheet.classList.add("on");
   }
   function closeGames(){ hush(); sheet.classList.remove("on"); }
@@ -894,12 +1020,24 @@ $("check").onclick=()=>{
     totalPairs=p.length; roundMax=totalPairs*10;
     $("pairsQ").textContent="מתאימים "+totalPairs+" זוגות · עוד "+deckLeft("pairs")+" אותיות עד סוף האלפבית";
     const grid=$("pairsGrid"); grid.innerHTML="";
-    const tiles=shuffle(p.map(l=>({l,c:"up"})).concat(p.map(l=>({l,c:"low"}))));
+    const pic=PACK.pairMode==="picture";
+    const tiles=shuffle(p.map(l=>({l,c:"a"})).concat(p.map(l=>({l,c:"b"}))));
     tiles.forEach(t=>{
       const b=document.createElement("button");
-      b.className="tile "+(t.c==="up"?"tup":"tlow"); b.type="button";
-      b.textContent = t.c==="up" ? t.l.u : t.l.u.toLowerCase();
-      b.setAttribute("aria-label",(t.c==="up"?"אות גדולה ":"אות קטנה ")+t.l.u);
+      const isA=t.c==="a";
+      b.className="tile "+(isA?"tup":"tlow"); b.type="button";
+      if(pic){
+        /* בעברית מתאימים את האות לתמונה שמתחילה בה */
+        b.textContent = isA ? t.l.u : t.l.e;
+        if(!isA) b.classList.add("temoji");
+        b.setAttribute("aria-label", isA ? "האות "+t.l.u : t.l.w);
+        b.style.fontFamily = isA ? PACK.face : "inherit";
+      }else{
+        const f=PACK.forms[isA?0:1];
+        b.textContent=f.ch(t.l);
+        b.style.fontFamily=f.face;
+        b.setAttribute("aria-label","אות "+f.he+" "+f.ch(t.l));
+      }
       b.onclick=()=>pick(b,t);
       grid.appendChild(b);
     });
@@ -924,9 +1062,8 @@ $("check").onclick=()=>{
 
   /* ---- game 3: word search ---- */
   let cells=[],placed=[],foundCount=0,searchMisses=0,dragFrom=null,dragCells=[];
-  const AZ="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
   function buildGrid(words){
+    const AZ=PACK.fill;
     /* null = משבצת ריקה שתתמלא באות אקראית בסוף */
     const g=[]; for(let i=0;i<GRID*GRID;i++) g.push(null);
     const put=[];
@@ -953,7 +1090,7 @@ $("check").onclick=()=>{
         put.push({word:w,letters:W,idx}); ok=true;
       }
     }
-    for(let i=0;i<g.length;i++) if(g[i]===null) g[i]=AZ[Math.floor(Math.random()*26)];
+    for(let i=0;i<g.length;i++) if(g[i]===null) g[i]=AZ[Math.floor(Math.random()*AZ.length)];
     return {grid:g,placed:put};
   }
 
@@ -962,7 +1099,7 @@ $("check").onclick=()=>{
     placed.forEach(p=>{
       const s=document.createElement("span");
       s.className="wchip"+(p.done?" found":"");
-      s.innerHTML='<span class="en">'+p.word+'</span>';
+      s.innerHTML='<span class="en" style="font-family:'+PACK.face+'">'+p.word+'</span>';
       box.appendChild(s);
     });
   }
@@ -970,12 +1107,15 @@ $("check").onclick=()=>{
   function startSearch(){
     mode="search"; setScore(0); foundCount=0; searchMisses=0; dragFrom=null; dragCells=[];
     show("search");
-    const words=draw("words",SW,WORDS);
+    const words=draw("words",SW,PACK.words);
     const built=buildGrid(words);
     placed=built.placed; roundMax=placed.length*10;
     $("searchQ").textContent="מצאו "+placed.length+" מילים · מעבירים את האצבע מהאות הראשונה לאחרונה";
     const grid=$("searchGrid");
     grid.style.gridTemplateColumns="repeat("+GRID+",1fr)";
+    /* בעברית הלוח נבנה מימין לשמאל, כך שמילה נקראת בכיוון הנכון */
+    grid.setAttribute("dir",PACK.dir);
+    grid.style.fontFamily=PACK.face;
     grid.innerHTML=""; cells=[];
     built.grid.forEach((ch,i)=>{
       const d=document.createElement("div");
@@ -1066,7 +1206,46 @@ $("check").onclick=()=>{
   loadBest();
 })();
 
-renderSteps(); loadProgress();
+/* ---- language ---- */
+function readLang(){
+  try{ const v=localStorage.getItem(LKEY); if(v&&PACKS[v]) return v; }catch(e){}
+  return null;
+}
+function applyPack(id){
+  PACK=PACKS[id]||PACKS.en;
+  L=PACK.letters;
+  buildGroups();
+  g=0; visited=new Set([0]); quizAnswer=null; padCase=PACK.forms[0].id;
+  document.documentElement.setAttribute("data-lang",PACK.id);
+  document.title=PACK.title;
+  $("logoText").textContent=PACK.title;
+  $("logoMark").textContent=PACK.mark;
+  $("langBtn").textContent=PACK.other;
+  $("langBtn").style.fontFamily=PACK.id==="en"?FACE_HE:FACE_EN;
+  $("abcAll").textContent=PACK.songName;
+  $("all").textContent=PACK.allName;
+  $("pairsName").textContent=PACK.pairsName;
+  $("pairsDesc").textContent=PACK.pairsDesc;
+  document.documentElement.style.setProperty("--face-a",PACK.forms[0].face);
+  document.documentElement.style.setProperty("--face-b",PACK.forms[1].face);
+  pickVoice();
+  if(window.__gamesLangChanged) window.__gamesLangChanged();
+  renderSteps(); loadProgress();
+}
+function chooseLang(id){
+  try{ localStorage.setItem(LKEY,id); }catch(e){}
+  $("pick").classList.remove("on");
+  applyPack(id);
+}
+$("pickEn").onclick=()=>chooseLang("en");
+$("pickHe").onclick=()=>chooseLang("he");
+$("langBtn").onclick=()=>{ stopAbc(); $("pick").classList.add("on"); };
+
+(function boot(){
+  const saved=readLang();
+  applyPack(saved||"en");
+  if(!saved) $("pick").classList.add("on");
+})();
 
 /* ---- install to home screen ---- */
 (function(){
