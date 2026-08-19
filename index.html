@@ -60,10 +60,12 @@
     background:var(--leaf);color:#fff;border:2px solid var(--ink);border-radius:999px;padding:1px 7px;display:none}
   .letter.mastered .badge{display:block}
   .letter.half .badge{display:block;background:var(--sun);color:var(--ink)}
-  .pair{display:flex;align-items:baseline;justify-content:center;gap:8px;line-height:.95}
-  .up{font-family:var(--letterface);font-weight:700;font-size:clamp(44px,13vw,72px)}
-  .low{font-family:var(--letterface);font-weight:400;font-size:clamp(32px,9.5vw,52px);color:var(--tangerine)}
-  .tip{font-family:var(--display);font-size:14px;margin:2px 0 8px}
+  /* line-height חייב להשאיר מקום לזנב היורד של g j p q y,
+     אחרת הזנב בורח מהקופסה והתווית "אומרים" נצבעת עליו */
+  .pair{display:flex;align-items:baseline;justify-content:center;gap:8px;line-height:1}
+  .up{font-family:var(--letterface);font-weight:700;font-size:clamp(44px,13vw,72px);line-height:1.05}
+  .low{font-family:var(--letterface);font-weight:400;font-size:clamp(32px,9.5vw,52px);color:var(--tangerine);line-height:1.4}
+  .tip{font-family:var(--display);font-size:14px;margin:6px 0 8px}
   .tip span{background:var(--sun);border:2px solid var(--ink);border-radius:7px;padding:0 8px}
 
   .btn{font-family:var(--display);font-weight:600;cursor:pointer;color:var(--ink);
